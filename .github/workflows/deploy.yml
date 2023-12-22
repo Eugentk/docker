@@ -6,6 +6,8 @@ on:
       branches:
         - main
 
+env:
+    DOCKER_REPOSITORY_DATADOG_URI: 574137177783.dkr.ecr.eu-west-1.amazonaws.com/devops
 jobs:
     download-s3:
         runs-on: ubuntu-latest
@@ -24,14 +26,13 @@ jobs:
             - name: Login to Amazon ECR
               id: login-ecr
               uses: aws-actions/amazon-ecr-login@v1
-          
-            - name: Build, tag, and push image to Amazon ECR
-              id: build-image
-              env:
-                ECR_REGISTRY: 574137177783.dkr.ecr.eu-west-1.amazonaws.com
-                ECR_REPOSITORY: devops
-                IMAGE_TAG: sas
+
+            - name: Build image with the datadog agent
+              run: docker build -f ./docker/datadog/Dockerfile -t datadog --build-arg "DD_API_KEY=${{secrets.DD_API_KEY_SANDBOX}}" .
+
+            - name: Push image with the datadog agent to Docker registry
               run: |
-                    docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --build-arg "DD_API_KEY=${{secrets.DD_API_KEY}}" .
-                    docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+                docker tag datadog:latest ${{ env.DOCKER_REPOSITORY_DATADOG_URI }}
+                docker tag ${{ env.DOCKER_REPOSITORY_DATADOG_URI }}:latest ${{ env.DOCKER_REPOSITORY_DATADOG_URI }}:blue
+                docker push ${{ env.DOCKER_REPOSITORY_DATADOG_URI }}:blue
           
