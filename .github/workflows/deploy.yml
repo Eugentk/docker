@@ -1,0 +1,37 @@
+name: Docker CI/CD Deployment
+run-name: ${{ github.actor }} is running GitHub Actions 🚀
+
+on:
+    push:
+      branches:
+        - main
+
+jobs:
+    download-s3:
+        runs-on: ubuntu-latest
+        name: Pull action from S3
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+             
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v1
+              with:
+                aws-access-key-id:  ${{ secrets.AWS_ACCESS_KEY_ID }}
+                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                aws-region: eu-west-1
+          
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v1
+          
+            - name: Build, tag, and push image to Amazon ECR
+              id: build-image
+              env:
+                ECR_REGISTRY: 574137177783.dkr.ecr.eu-west-1.amazonaws.com
+                ECR_REPOSITORY: devops
+                IMAGE_TAG: sas
+              run: |
+                    docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --build-arg "DD_API_KEY=${{secrets.DD_API_KEY}}" .
+                    docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          
