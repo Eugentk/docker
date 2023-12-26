@@ -8,7 +8,8 @@ on:
 
 env:
     DOCKER_REPOSITORY_DATADOG_URI: 574137177783.dkr.ecr.eu-west-1.amazonaws.com/devops
-    DATADOG_API_KEY: "DD_API_KEY=${{secrets.DD_API_KEY_SANDBOX}}"
+    ENV_FILE: ${{ secrets.SANDBOX_ENV_FILE }}
+    DATADOG_API_KEY: ${{ secrets.DD_API_KEY_SANDBOX }}
 jobs:
     download-s3:
         runs-on: ubuntu-latest
@@ -28,8 +29,27 @@ jobs:
               id: login-ecr
               uses: aws-actions/amazon-ecr-login@v1
 
+            - name: Copy .env file
+              run: |
+                cat >.env <<EOL
+                ${{ env.ENV_FILE }}
+                EOL
+              shell: bash
+
+            - name: Set Datadog env
+              run: echo "DD_ENV=$(awk -F '=' '/APP_ENV=/{print $2}' .env)" >> $GITHUB_ENV
+
+            - name: Set Datadog Blue Green env
+              run: echo "BLUE_GREEN_ENV=$(awk -F '=' '/BLUE_GREEN_ENV=/{print $2}' .env}' .env)" >> $GITHUB_ENV
+
+            - name: Test Datadog env
+              run: echo $DD_ENV
+
+            - name: Datadog Blue Green env
+              run: echo $BLUE_GREEN_ENV
+
             - name: Build image with the datadog agent
-              run: docker build -f ./docker/datadog/Dockerfile -t datadog --build-arg ${{env.DATADOG_API_KEY}} .
+              run: docker build -f ./docker/datadog/Dockerfile -t datadog --build-arg DD_API_KEY=${{ env.DATADOG_API_KEY }} DD_ENV=${{ env.DD_ENV }} BLUE_GREEN_ENV=${{ env.BLUE_GREEN_ENV }} .
 
             - name: Push image with the datadog agent to Docker registry
               run: |
