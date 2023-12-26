@@ -37,19 +37,19 @@ jobs:
               shell: bash
 
             - name: Set Datadog env
-              run: echo "DD_ENV=$(awk -F '=' '/APP_ENV=/{print $2}' .env)" >> $GITHUB_ENV
+              run: echo "DATADOG_ENV=$(awk -F '=' '/APP_ENV=/{print $2}' .env)" >> $GITHUB_ENV
 
             - name: Set Datadog Blue Green env
-              run: echo "BLUE_GREEN_ENV=$(awk -F '=' '/BLUE_GREEN_ENV=/{print $2}' .env)" >> $GITHUB_ENV
+              run: echo "DATADOG_TAGS=$(awk -F '=' '/BLUE_GREEN_ENV=/{print $2}' .env)" >> $GITHUB_ENV
 
             - name: Test Datadog env
-              run: echo $DD_ENV
+              run: echo $DATADOG_ENV
 
             - name: Datadog Blue Green env
-              run: echo $BLUE_GREEN_ENV
+              run: echo $DATADOG_TAGS
 
             - name: Build image with the datadog agent
-              run: docker build -f ./docker/datadog/Dockerfile -t datadog --build-arg DD_API_KEY=${{ env.DATADOG_API_KEY }} --build-arg DD_ENV=${{ env.DD_ENV }} --build-arg BLUE_GREEN_ENV=${{ env.BLUE_GREEN_ENV }} .
+              run: docker build -f ./docker/datadog/Dockerfile -t datadog --build-arg DD_API_KEY=${{ env.DATADOG_API_KEY }} --build-arg DD_ENV=${{ env.DATADOG_ENV }} --build-arg DD_TAGS=blue_green_env:${{ env.DATADOG_TAGS }} .
 
             - name: Push image with the datadog agent to Docker registry
               run: |
