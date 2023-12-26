@@ -11,9 +11,9 @@ env:
     ENV_FILE: ${{ secrets.SANDBOX_ENV_FILE }}
     DATADOG_API_KEY: ${{ secrets.DD_API_KEY_SANDBOX }}
 jobs:
-    download-s3:
+    build:
         runs-on: ubuntu-latest
-        name: Pull action from S3
+        name: Build Docker image
         steps:
             - name: Checkout
               uses: actions/checkout@v2
@@ -49,7 +49,7 @@ jobs:
               run: echo $BLUE_GREEN_ENV
 
             - name: Build image with the datadog agent
-              run: docker build -f ./docker/datadog/Dockerfile -t datadog --build-arg DD_API_KEY=${{ env.DATADOG_API_KEY }} DD_ENV=${{ env.DD_ENV }} BLUE_GREEN_ENV=${{ env.BLUE_GREEN_ENV }} .
+              run: docker build -f ./docker/datadog/Dockerfile -t datadog --build-arg DD_API_KEY=${{ env.DATADOG_API_KEY }} --build-arg DD_ENV=${{ env.DD_ENV }} --build-arg BLUE_GREEN_ENV=${{ env.BLUE_GREEN_ENV }} .
 
             - name: Push image with the datadog agent to Docker registry
               run: |
