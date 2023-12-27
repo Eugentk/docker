@@ -43,10 +43,10 @@ jobs:
               run: echo "BLUE_GREEN_ENV=$(awk -F '=' '/BLUE_GREEN_ENV=/{print $2}' .env)" >> $GITHUB_ENV
 
             - name: Test Datadog env
-              run: echo $DATADOG_ENV
+              run: echo $APP_ENV
 
             - name: Datadog Blue Green env
-              run: echo $DATADOG_TAGS
+              run: echo $BLUE_GREEN_ENV
 
             - name: Build image with the datadog agent
               run: docker build -f ./docker/datadog/Dockerfile -t datadog --build-arg DD_API_KEY=${{ env.DATADOG_API_KEY }} --build-arg DD_ENV=${{ env.APP_ENV }} --build-arg DD_TAGS=blue_green_env:${{ env.BLUE_GREEN_ENV }} .
