@@ -49,7 +49,7 @@ jobs:
               run: echo $BLUE_GREEN_ENV
 
             - name: Build image with the datadog agent
-              run: docker build -f ./docker/datadog/Dockerfile -t datadog --build-arg DD_API_KEY=${{ env.DATADOG_API_KEY }} --build-arg DD_ENV=${{ env.APP_ENV }} --build-arg DD_TAGS=blue_green_env:${{ env.BLUE_GREEN_ENV }} .
+              run: docker build -f ./docker/datadog/Dockerfile -t datadog --build-arg DD_API_KEY=${{ env.DATADOG_API_KEY }} --build-arg DD_ENV=${{ env.APP_ENV }} .
 
             - name: Push image with the datadog agent to Docker registry
               run: |
