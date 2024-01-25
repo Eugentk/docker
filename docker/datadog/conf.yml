@@ -1,0 +1,8 @@
+init_config:
+instances:
+    - use_mount: false
+      excluded_filesystems:
+        - overlay
+        - tmpfs
+        - nsfs
+      excluded_mountpoint_re: /run/docker/netns/.*
