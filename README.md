@@ -11,3 +11,6 @@ aws ec2 modify-instance-metadata-options \
 
 
 sudo docker exec -it 9d4489a1b13c agent status
+
+
+'hostname_file' configuration/environment: Could not read hostname from /var/lib/cloud/data/previous-hostname: open /var/lib/cloud/data/previous-hostname: no such file or directory

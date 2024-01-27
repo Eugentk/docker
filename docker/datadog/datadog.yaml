@@ -7,6 +7,9 @@ apm_config:
 # Use java container support
 jmx_use_container_support: true
 
+# Set empty hostname
+hostname: ""
+
 # allow configuration-provided hostname starting with ip- or domu
 hostname_force_config_as_canonical: true
 
