@@ -1,7 +1,7 @@
 #!/bin/sh
 echo "========================================Start========================================="
 sudo apt-get update
-sudo apt-get -y install apt-transport-https ca-certificates curl software-properties-common
+sudo apt-get -y install apt-transport-https ca-certificates curl software-properties-common awscli
 # Add package signing key
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 # Add repository

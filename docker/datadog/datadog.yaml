@@ -11,4 +11,4 @@ jmx_use_container_support: true
 hostname_force_config_as_canonical: true
 
 # Use hostname from file
-#hostname_file: /var/lib/cloud/data/previous-hostname
+hostname_file: /var/lib/cloud/data/fake-hostname
