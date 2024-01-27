@@ -7,8 +7,10 @@ apm_config:
 # Use java container support
 jmx_use_container_support: true
 
+# set hostname
+hostname: "ip-18.198.152.249"
 # allow configuration-provided hostname starting with ip- or domu
-#hostname_force_config_as_canonical: true
+hostname_force_config_as_canonical: true
 
 # Use hostname from file
 #hostname_file: /var/lib/cloud/data/fake-hostname
