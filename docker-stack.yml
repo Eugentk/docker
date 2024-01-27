@@ -1,0 +1,114 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:11.5
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_PASSWORD: De0h52bpNrT6jqy9Z87U
+      POSTGRES_USER: datadog
+      POSTGRES_DB: test
+    networks:
+      - backend
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        parallelism: 0
+        delay: 0s
+      restart_policy:
+        condition: any
+  adminer:
+    image: adminer:4.7.8
+    labels:
+      datadog_label: "purple"
+    environment:
+      - ADMINER_DESIGN=nette
+    ports:
+      - 8080:8080
+    networks:
+      - backend
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+      update_config:
+        parallelism: 0
+        delay: 0s
+      restart_policy:
+        condition: any
+  web:
+    image: nginx
+    labels:
+      datadog_label: "white"
+    networks:
+      - backend
+    ports:
+      - "80:80"
+    deploy:
+      mode: global
+      update_config:
+        parallelism: 0
+        order: stop-first
+        delay: 2s
+      restart_policy:
+        condition: any
+
+  site:
+    image: nginxdemos/hello
+    labels:
+      datadog_label: "white"
+    networks:
+      - backend
+    ports:
+      - "8081:80"
+    deploy:
+      mode: global
+      update_config:
+        parallelism: 0
+        order: stop-first
+        delay: 2s
+      restart_policy:
+        condition: any
+
+  datadog-agent:
+    image: 574137177783.dkr.ecr.eu-west-1.amazonaws.com/devops:blue
+    environment:
+      DD_SITE: "datadoghq.eu"                               #Datadog Site
+      DD_APM_ENABLED: "true"                                 #When set to true (the default), the Datadog Agent accepts traces and trace metrics.
+      DD_LOGS_ENABLED: "true"                                #Enables log collection
+      DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL: "true"           #Adds a log configuration that enables log collection for all containers
+      DD_DOGSTATSD_NON_LOCAL_TRAFFIC: "false"                 #Listen to DogStatsD packets from other containers (required to send custom metrics)
+      DD_CONTAINER_INCLUDE: "name:.*web.* name:.*_site.* name:.*adminer.*"
+      DD_CONTAINER_INCLUDE_METRICS: "name:.*web.* name:.*_site.*"
+      DD_CONTAINER_INCLUDE_LOGS: "name:.*web.* name:.*_site.*"
+      DD_CONTAINER_EXCLUDE: "name:.*"           #Blocklist of containers to exclude
+      DD_CONTAINER_EXCLUDE_METRICS: "name:.*"   #Blocklist of containers whose metrics you wish to exclude.
+      DD_CONTAINER_EXCLUDE_LOGS: "name:.*" #Blocklist of containers whose logs you wish to exclude.
+      DD_CONTAINER_LABELS_AS_TAGS: '{"datadog_label":"blue_green_env"}'
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "/var/lib/docker/containers:/var/lib/docker/containers:ro"
+      - "/proc/:/host/proc/:ro"
+      - "/sys/fs/cgroup/:/host/sys/fs/cgroup:ro"
+      - "datadogconf:/opt/datadog-agent/run"
+    networks:
+      - backend
+    deploy:
+      mode: global
+      update_config:
+        parallelism: 0
+        order: stop-first
+        delay: 2s
+      restart_policy:
+        condition: any
+
+networks:
+  backend:
+volumes:
+  dbdata:
+  datadogconf:

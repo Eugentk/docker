@@ -5,4 +5,4 @@ ARG DD_ENV
 ENV DD_API_KEY $DD_API_KEY
 ENV DD_ENV $DD_ENV
 
-COPY  docker/datadog/conf.yml /etc/datadog-agent/conf.d/disk.d/conf.yml
+COPY  docker/datadog/datadog.yaml /etc/datadog-agent/datadog.yaml
