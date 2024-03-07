@@ -25,7 +25,7 @@ on:
         #- main
 
 env:
-    DOCKER_REPOSITORY_DATADOG_URI: 574137177783.dkr.ecr.eu-west-1.amazonaws.com/devops
+    #DOCKER_REPOSITORY_DATADOG_URI: 574137177783.dkr.ecr.eu-west-1.amazonaws.com/devops
     ENV_FILE: ${{ secrets.SANDBOX_ENV_FILE }}
     DATADOG_API_KEY: ${{ secrets.DD_API_KEY_SANDBOX }}
 jobs:
@@ -98,7 +98,7 @@ jobs:
                 SLACK_TITLE: 'Deploy ${{ inputs.git-ref }} to ${{ inputs.deployment-env }} by ${{ github.actor }} 🚀'
                 SLACK_USERNAME: 'Deploy Successfully Completed :tada:'
 
-            - name: Slack Notification
+            - name: Slack Notification Failure
               uses: rtCamp/action-slack-notify@v2
               if: failure()
               env:
@@ -108,4 +108,4 @@ jobs:
                 SLACK_ICON_EMOJI: ':fire:'
                 #SLACK_MESSAGE: '${{ github.event.workflow_run.head_commit.message }}'
                 SLACK_TITLE: 'Deploy ${{ inputs.git-ref }} to ${{ inputs.deployment-env }} by ${{ github.actor }} 🚀'
-                SLACK_USERNAME: 'Deploy Failure :no_entry:'
+                SLACK_USERNAME: 'Deploy Failure'
