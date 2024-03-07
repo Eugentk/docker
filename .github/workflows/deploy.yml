@@ -17,7 +17,18 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v2
-             
+
+            - name: Slack Notification
+              uses: rtCamp/action-slack-notify@v2
+              env:
+                SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+                SLACK_CHANNEL: deployment
+                SLACK_COLOR: ${{ job.status }}
+                SLACK_ICON_EMOJI: ':alarm_clock:'
+                SLACK_MESSAGE: 'Post Content :rocket:'
+                SLACK_TITLE: Post Title
+                SLACK_USERNAME: Deploy
+                
             - name: Configure AWS credentials
               uses: aws-actions/configure-aws-credentials@v1
               with:
