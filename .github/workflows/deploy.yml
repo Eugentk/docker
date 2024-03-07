@@ -25,10 +25,10 @@ jobs:
                 SLACK_CHANNEL: deployment
                 SLACK_COLOR: ${{ job.status }}
                 SLACK_ICON_EMOJI: ':alarm_clock:'
-                SLACK_MESSAGE: 'Post Content :rocket:'
+                #SLACK_MESSAGE: 'Post Content :rocket:'
                 SLACK_TITLE: Post Title
                 SLACK_USERNAME: Deploy
-                
+
             - name: Configure AWS credentials
               uses: aws-actions/configure-aws-credentials@v1
               with:
