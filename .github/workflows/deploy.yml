@@ -26,7 +26,7 @@ jobs:
                 SLACK_COLOR: ${{ job.status }}
                 SLACK_ICON_EMOJI: ':rocket:'
                 #SLACK_MESSAGE: 'Post Content :rocket:'
-                SLACK_TITLE: Commit Message
+                SLACK_TITLE: 'Deploy ${{ inputs.git-ref }} to ${{ inputs.deployment-env }} by ${{ github.actor }} 🚀'
                 SLACK_USERNAME: Deploy
 
             - name: Configure AWS credentials
