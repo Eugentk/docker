@@ -2,9 +2,27 @@ name: Docker CI/CD Deployment
 run-name: ${{ github.actor }} is running GitHub Actions 🚀
 
 on:
-    push:
-      branches:
-        - main
+  workflow_dispatch:
+    inputs:
+      software-setup:
+        description: 'Setup/configure required software on EC2 instances (Optional)'
+        default: false
+        type: boolean
+      deployment-env:
+        description: 'Deployment environment'
+        required: true
+        default: 'blue'
+        type: choice
+        options:
+          - blue
+          - green
+      git-ref:
+        description: 'Git Reference (Optional. branch/commit hash)'
+        required: false
+
+    #push:
+      #branches:
+        #- main
 
 env:
     DOCKER_REPOSITORY_DATADOG_URI: 574137177783.dkr.ecr.eu-west-1.amazonaws.com/devops
