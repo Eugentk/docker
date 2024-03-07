@@ -24,9 +24,9 @@ jobs:
                 SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
                 SLACK_CHANNEL: deployment
                 SLACK_COLOR: ${{ job.status }}
-                SLACK_ICON_EMOJI: ':alarm_clock:'
+                SLACK_ICON_EMOJI: ':rocket:'
                 #SLACK_MESSAGE: 'Post Content :rocket:'
-                SLACK_TITLE: Post Title
+                SLACK_TITLE: Commit Message
                 SLACK_USERNAME: Deploy
 
             - name: Configure AWS credentials
