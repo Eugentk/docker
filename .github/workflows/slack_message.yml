@@ -29,6 +29,7 @@ env:
     ENV_FILE: ${{ secrets.SANDBOX_ENV_FILE }}
     DATADOG_API_KEY: ${{ secrets.DD_API_KEY_SANDBOX }}
     GIT_BRANCH: main
+    REPO_URL: https://github.com/Eugentk/docker
 
 jobs:
     build:
@@ -61,7 +62,9 @@ jobs:
                 SLACK_COLOR: ${{ job.status }}
                 SLACK_FOOTER: 'Powered By SellerAmp'
                 SLACK_ICON_EMOJI: ':rocket:'
-                SLACK_MESSAGE: ${{ steps.deploy-message.outputs.commit_msg }}
+                SLACK_MESSAGE: |
+                 ${{ steps.deploy-message.outputs.commit_msg }}
+                 See details: <${{ env.REPO_URL }}/commit/${{ github.sha }}|(Commit)> <${{ env.REPO_URL }}/actions/runs/${{ github.run_id }}|(Action run)>
                 SLACK_TITLE: 'Deploy ${{ inputs.git-ref }} to ${{ inputs.deployment-env }} by ${{ github.actor }} 🚀'
                 SLACK_USERNAME: Deploy Started
 
