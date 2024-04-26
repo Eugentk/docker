@@ -37,7 +37,8 @@ if [ -z $PRODUCTION_VERSION ]; then
     if [ "$CURRENT_BRANCH" ]; then
         VERSION=$CURRENT_BRANCH
     else
-        VERSION=$SHORT_GIT_HASH
+        #VERSION=$SHORT_GIT_HASH
+        VERSION=$NEAREST_GIT_TAG
     fi
 else
     if [ "$CURRENT_BRANCH" = "$DEFAULT_PRODUCTION_BRANCH" ]; then
