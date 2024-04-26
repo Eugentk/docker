@@ -42,10 +42,8 @@ if [ -z $PRODUCTION_VERSION ]; then
 else
     if [ "$CURRENT_BRANCH" = "$DEFAULT_PRODUCTION_BRANCH" ]; then
         VERSION=$NEAREST_GIT_TAG
-    elif [ "$CURRENT_BRANCH" ]; then
-        VERSION=$NEAREST_GIT_TAG
     else
-        VERSION=$NEAREST_GIT_TAG
+        VERSION=$CURRENT_BRANCH
     fi
 fi
 echo $VERSION
