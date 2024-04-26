@@ -60,6 +60,11 @@ jobs:
             - name: set jira release id .env variable
               run: sed -i~ '/^Jira_Release_ID=/s/=.*/=${{inputs.jira-id}}/' .env
 
+            - name: set short commit
+              run: |
+                SHORT_GIT_HASH=`git rev-parse --short HEAD`
+                sed -i~ '/^SHORT_GIT_HASH=/s/=.*/=$SHORT_GIT_HASH/' .env
+
             - name: test .env
               run: cat .env
           
