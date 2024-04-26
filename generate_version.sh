@@ -31,7 +31,11 @@ done
 DEFAULT_PRODUCTION_BRANCH=main
 CURRENT_BRANCH=`git symbolic-ref --short HEAD`
 SHORT_GIT_HASH=`git rev-parse --short HEAD`
-NEAREST_GIT_TAG=`git describe --tags --candidates 1 $SHORT_GIT_HASH --always | awk -F- '{print $1}'`
+#NEAREST_GIT_TAG=`git describe --tags --candidates 1 $SHORT_GIT_HASH --always | awk -F- '{print $1}'`
+GIT_TAGS=$(git tag --points-at "$SHORT_GIT_HASH")
+
+# Filter out tags with "stable" in the name
+NEAREST_GIT_TAG=$(echo "$GIT_TAGS" | grep -v -i 'stable')
 
 if [ -z $PRODUCTION_VERSION ]; then
     if [ "$CURRENT_BRANCH" ]; then
