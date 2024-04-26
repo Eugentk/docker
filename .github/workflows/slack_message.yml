@@ -62,10 +62,10 @@ jobs:
 
             - name: set short commit
               id: git-hash
-              run: |
-                echo "short_git_hash=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-                sed -i~ '/^SHORT_GIT_HASH=/s/=.*/=${{steps.git-hash.outputs.short_git_hash}}/' .env
-              shell: bash
+              run: echo "short_git_hash=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+            
+            - name: short commit
+              run: sed -i~ '/^SHORT_GIT_HASH=/s/=.*/=${{steps.git-hash.outputs.short_git_hash}}/' .env
 
             - name: test short commit
               run: echo $SHORT_GIT_HASH
