@@ -66,6 +66,9 @@ jobs:
                 sed -i~ '/^SHORT_GIT_HASH=/s/=.*/=$SHORT_GIT_HASH/' .env
               shell: bash
 
+            - name: test short commit
+              run: echo $SHORT_GIT_HASH
+          
             - name: test .env
               run: cat .env
           
