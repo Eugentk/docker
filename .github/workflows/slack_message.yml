@@ -58,7 +58,7 @@ jobs:
               run: sed -i~ '/^BLUE_GREEN_ENV=/s/=.*/="blue"/' .env
             
             - name: set jira release id .env variable
-              run: sed -i~ '/^Jira_Release_ID=/s/=.*/=${{inputs.jira-id}}/' .env
+              run: sed -i~ '/^JIRA_RELEASE_ID=/s/=.*/=${{inputs.jira-id}}/' .env
 
             - name: set short commit
               id: git-hash
