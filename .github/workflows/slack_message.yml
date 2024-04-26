@@ -64,6 +64,7 @@ jobs:
               run: |
                 SHORT_GIT_HASH=`git rev-parse --short HEAD`
                 sed -i~ '/^SHORT_GIT_HASH=/s/=.*/=$SHORT_GIT_HASH/' .env
+              shell: bash
 
             - name: test .env
               run: cat .env
