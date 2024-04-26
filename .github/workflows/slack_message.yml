@@ -72,11 +72,10 @@ jobs:
 
             - name: set app version in .env file
               run: |
-                APP_VERSION=`./generate_version.sh`
+                APP_VERSION=`./generate_version.sh -p`
                 APP_VERSION=$(echo "$APP_VERSION" | sed 's/\//\\\//g')
                 sed -ri~ "/^APP_VERSION=/s/=.*/=$APP_VERSION/" .env
               shell: bash
 
             - name: test .env
               run: cat .env
-          
