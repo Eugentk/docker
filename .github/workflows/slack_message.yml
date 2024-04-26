@@ -62,7 +62,7 @@ jobs:
 
             - name: set short commit
               run: |
-                SHORT_GIT_HASH=`git rev-parse --short HEAD`
+                SHORT_GIT_HASH=$(git rev-parse --short HEAD)
                 sed -i~ '/^SHORT_GIT_HASH=/s/=.*/=$SHORT_GIT_HASH/' .env
               shell: bash
 
