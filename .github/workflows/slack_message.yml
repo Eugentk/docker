@@ -19,10 +19,9 @@ on:
       git-ref:
         description: 'Git Reference (Optional. branch/commit hash)'
         required: false
-
-    #push:
-      #branches:
-        #- main
+      jira-id:
+        description: 'Jira Release ID (Optional)'
+        required: false
 
 env:
     DOCKER_REPOSITORY_DATADOG_URI: 574137177783.dkr.ecr.eu-west-1.amazonaws.com/devops
@@ -48,38 +47,6 @@ jobs:
                 ref: ${{ github.event.inputs.git-ref }}
               if: github.event.inputs.git-ref != ''
 
-            - name: 'Get message'
-              id: 'deploy-message'
-              run: |
-                    echo "::set-output name=commit_msg::$(git log -1 --format=%B)"
-                    echo "::set-output name=commit_sha::$(git log -1 --format=%H)"
-
-            - name: Slack Notification
-              uses: rtCamp/action-slack-notify@v2
-              env:
-                SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-                SLACK_CHANNEL: deployment
-                SLACK_COLOR: ${{ job.status }}
-                SLACK_FOOTER: 'Powered By SellerAmp'
-                MSG_MINIMAL: true
-                SLACK_ICON_EMOJI: ':rocket:'
-                SLACK_MESSAGE: |
-                    ${{ steps.deploy-message.outputs.commit_msg }}
-                    See details: <${{ env.REPO_URL }}/commit/${{ github.sha }}|(Commit)> <${{ env.REPO_URL }}/actions/runs/${{ github.run_id }}|(Action run)>
-                SLACK_TITLE: 'Deploy ${{ inputs.git-ref }} to ${{ inputs.deployment-env }} by ${{ github.actor }} 🚀'
-                SLACK_USERNAME: Deploy Started
-
-            - name: Configure AWS credentials
-              uses: aws-actions/configure-aws-credentials@v1
-              with:
-                aws-access-key-id:  ${{ secrets.AWS_ACCESS_KEY_ID }}
-                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                aws-region: eu-west-1
-          
-            - name: Login to Amazon ECR
-              id: login-ecr
-              uses: aws-actions/amazon-ecr-login@v1
-
             - name: Copy .env file
               run: |
                 cat >.env <<EOL
@@ -87,42 +54,29 @@ jobs:
                 EOL
               shell: bash
 
-            - name: Set Datadog env
-              run: echo "APP_ENV=$(awk -F '=' '/APP_ENV=/{print $2}' .env)" >> $GITHUB_ENV
+            - name: set blue deployment .env variable
+              run: sed -i~ '/^BLUE_GREEN_ENV=/s/=.*/="blue"/' .env
+            
+            - name: set jira release id .env variable
+              run: sed -i~ '/^JIRA_RELEASE_ID=/s/=.*/=${{inputs.jira-id}}/' .env
 
-            - name: Set Datadog Blue Green env
-              run: echo "BLUE_GREEN_ENV=$(awk -F '=' '/BLUE_GREEN_ENV=/{print $2}' .env)" >> $GITHUB_ENV
+            - name: set short commit
+              id: git-hash
+              run: echo "short_git_hash=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+            
+            - name: short commit
+              run: sed -i~ '/^SHORT_GIT_HASH=/s/=.*/=${{steps.git-hash.outputs.short_git_hash}}/' .env
 
-            - name: Test Datadog env
-              run: echo $APP_ENV
+            - name: test short commit
+              run: echo $SHORT_GIT_HASH
 
-            - name: Datadog Blue Green env
-              run: echo $BLUE_GREEN_ENV
+            - name: set app version in .env file
+              run: |
+                APP_VERSION=`./generate_version.sh`
+                APP_VERSION=$(echo "$APP_VERSION" | sed 's/\//\\\//g')
+                sed -ri~ "/^APP_VERSION=/s/=.*/=$APP_VERSION/" .env
+              shell: bash
 
-            - name: Slack Notification Success
-              uses: rtCamp/action-slack-notify@v2
-              if: success()
-              env:
-                SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-                SLACK_CHANNEL: deployment
-                SLACK_COLOR: ${{ job.status }}
-                SLACK_FOOTER: 'Powered By SellerAmp'
-                MSG_MINIMAL: true
-                SLACK_ICON_EMOJI: ':checkered_flag:'
-                SLACK_MESSAGE: ${{ steps.deploy-message.outputs.commit_msg }}
-                SLACK_TITLE: 'Deploy ${{ inputs.git-ref }} to ${{ inputs.deployment-env }} by ${{ github.actor }} 🚀'
-                SLACK_USERNAME: 'Deploy Successfully Completed'
-
-            - name: Slack Notification Failure
-              uses: rtCamp/action-slack-notify@v2
-              if: failure()
-              env:
-                SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-                SLACK_CHANNEL: deployment
-                SLACK_COLOR: ${{ job.status }}
-                SLACK_FOOTER: 'Powered By SellerAmp'
-                MSG_MINIMAL: true
-                SLACK_ICON_EMOJI: ':fire:'
-                SLACK_MESSAGE: ${{ steps.deploy-message.outputs.commit_msg }}
-                SLACK_TITLE: 'Deploy ${{ inputs.git-ref }} to ${{ inputs.deployment-env }} by ${{ github.actor }} 🚀'
-                SLACK_USERNAME: 'Deploy Failure'
+            - name: test .env
+              run: cat .env
+          
