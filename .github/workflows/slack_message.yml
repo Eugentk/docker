@@ -68,7 +68,10 @@ jobs:
               run: sed -i~ '/^SHORT_GIT_HASH=/s/=.*/=${{steps.git-hash.outputs.short_git_hash}}/' .env
 
             - name: test short commit
-              run: echo $SHORT_GIT_HASH
+              run: echo ${{steps.git-hash.outputs.short_git_hash}}
+
+            - name: show tags
+              run: git tag -l                 
 
             - name: set app version in .env file
               run: |
