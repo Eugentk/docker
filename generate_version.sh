@@ -31,8 +31,7 @@ done
 DEFAULT_PRODUCTION_BRANCH=main
 CURRENT_BRANCH=`git symbolic-ref --short HEAD`
 SHORT_GIT_HASH=`git rev-parse --short HEAD`
-#NEAREST_GIT_TAG=`git describe --tags --candidates 1 $SHORT_GIT_HASH --always | awk -F- '{print $1}'`
-NEAREST_GIT_TAG=$(git describe --tags --always --candidates=1 $SHORT_GIT_HASH)
+NEAREST_GIT_TAG=`git describe --tags --candidates 1 $SHORT_GIT_HASH --always | awk -F- '{print $1}'`
 
 if [ -z $PRODUCTION_VERSION ]; then
     if [ "$CURRENT_BRANCH" ]; then
@@ -42,11 +41,9 @@ if [ -z $PRODUCTION_VERSION ]; then
     fi
 else
     if [ "$CURRENT_BRANCH" = "$DEFAULT_PRODUCTION_BRANCH" ]; then
-        VERSION=$NEAREST_GIT_TAG+$SHORT_GIT_HASH
-    elif [ "$CURRENT_BRANCH" ]; then
-        VERSION=$NEAREST_GIT_TAG-$CURRENT_BRANCH+$SHORT_GIT_HASH
+        VERSION=$NEAREST_GIT_TAG
     else
-        VERSION=$NEAREST_GIT_TAG+$SHORT_GIT_HASH
+        VERSION=$SHORT_GIT_HASH
     fi
 fi
 echo $VERSION
