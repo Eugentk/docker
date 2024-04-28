@@ -71,7 +71,11 @@ jobs:
               run: echo ${{steps.git-hash.outputs.short_git_hash}}
 
             - name: show tags
-              run: echo 'git tag -l'                 
+              id: git-tags
+              run: echo "git_tags=$(git tag -l)" >> "$GITHUB_OUTPUT"
+                               
+            - name: test tags
+              run: echo ${{steps.git-tags.outputs.git_tags}}
 
             - name: set app version in .env file
               run: |
