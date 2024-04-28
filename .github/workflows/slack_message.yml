@@ -71,7 +71,7 @@ jobs:
               run: echo ${{steps.git-hash.outputs.short_git_hash}}
 
             - name: show tags
-              run: git tag -l                 
+              run: echo 'git tag -l'                 
 
             - name: set app version in .env file
               run: |
