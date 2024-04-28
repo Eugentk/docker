@@ -68,13 +68,6 @@ jobs:
             
             - name: short commit
               run: sed -i~ '/^SHORT_GIT_HASH=/s/=.*/=${{steps.git-hash.outputs.short_git_hash}}/' .env
-
-            - name: test short commit
-              run: echo ${{steps.git-hash.outputs.short_git_hash}}
-
-            - name: show tags
-              id: git-tags
-              run: echo "git_tags=$(git tag -l)" >> "$GITHUB_OUTPUT"
                                
             - name: test tags
               run: echo ${{steps.git-tags.outputs.git_tags}}
