@@ -1,4 +1,4 @@
-name: Stage. CI/CD with Blue/Green Deployment
+name: Production. CI/CD with Blue/Green Deployment
 run-name: ${{ github.actor }} is running GitHub Actions 🚀
 
 on:
