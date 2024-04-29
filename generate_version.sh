@@ -48,6 +48,8 @@ if [ -z $PRODUCTION_VERSION ]; then
 else
     if [ "$CURRENT_BRANCH" = "$DEFAULT_PRODUCTION_BRANCH" ]; then
         VERSION=$NEAREST_GIT_TAG
+    elif [ "$CURRENT_BRANCH" ]; then
+        VERSION=$NEAREST_GIT_TAG
     else
         VERSION=$SHORT_GIT_HASH
     fi
