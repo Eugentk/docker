@@ -30,7 +30,7 @@ done
 
 DEFAULT_PRODUCTION_BRANCH=main
 CURRENT_BRANCH=`git symbolic-ref --short HEAD`
-#CURRENT_BRANCH=`git rev-parse --abbrev-ref HEAD`
+CURRENT_BRANCH_PRODUCTION=`git rev-parse --abbrev-ref HEAD`
 SHORT_GIT_HASH=`git rev-parse --short HEAD`
 NEAREST_GIT_TAG=`git describe --tags --candidates 1 $SHORT_GIT_HASH --always | awk -F- '{print $1}'`
 
@@ -41,9 +41,9 @@ if [ -z $PRODUCTION_VERSION ]; then
         VERSION=$SHORT_GIT_HASH
     fi
 else
-    if [ "$CURRENT_BRANCH" = "$DEFAULT_PRODUCTION_BRANCH" ]; then
+    if [ "$CURRENT_BRANCH_PRODUCTION" = "$DEFAULT_PRODUCTION_BRANCH" ]; then
         VERSION=$NEAREST_GIT_TAG
-    elif [ "$CURRENT_BRANCH" ]; then
+    elif [ "$CURRENT_BRANCH_PRODUCTION" ]; then
         VERSION=$NEAREST_GIT_TAG
     else
         VERSION=$SHORT_GIT_HASH
