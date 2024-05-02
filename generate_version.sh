@@ -37,6 +37,8 @@ NEAREST_GIT_TAG=`git describe --tags --candidates 1 $SHORT_GIT_HASH --always --e
 CURRENT_GIT_TAG=`git tag --points-at $SHORT_GIT_HASH | sort | head -n 1`
 TAGS=$(git tag --points-at $SHORT_GIT_HASH)
 
+#Checking a current commit for a tag
+
     if [ -n "$TAGS" ]; then
         TAG=$CURRENT_GIT_TAG
     else
