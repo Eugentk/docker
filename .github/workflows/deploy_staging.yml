@@ -100,11 +100,12 @@ jobs:
                 else
                 GIT_SSH_COMMAND="ssh -i /tmp/symfony-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ github.event.inputs.symfony-git-ref }} ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
                 fi
-
-            # - name: Clone Symfony repository
-            #   run: |
-            #     GIT_SSH_COMMAND="ssh -i /tmp/symfony-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.SYMFONY_GIT_REPOSITORY_BRANCH }} ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
                 
+            - name: get git message
+              run: |
+                cd /tmp/symfony
+                msg=$(git log -1 --format=%B)
+                echo "commit_msg<<EOF"$'\n'"$msg"$'\n'EOF
 
             - name: Remove Symfony git deploy key
               run: rm /tmp/symfony-git-deploy-key.pem
