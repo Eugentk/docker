@@ -36,7 +36,7 @@ env:
     GIT_BRANCH: main
     REPO_URL: https://github.com/Eugentk/docker
     SYMFONY_GIT_DEPLOY_KEY: ${{ secrets.SYMFONY_GIT_DEPLOY_KEY }}
-    SYMFONY_GIT_REPOSITORY_URL: "git@github.com:SellerAmp/sas-react.git"
+    SYMFONY_GIT_REPOSITORY_URL: "git@github.com:SellerAmp/sas-symfony.git"
     SYMFONY_GIT_REPOSITORY_BRANCH: dev
 
 jobs:
