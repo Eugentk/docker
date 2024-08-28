@@ -93,17 +93,17 @@ jobs:
                 mkdir -p /tmp/symfony
               shell: bash
       
-            # - name: Clone Symfony repository
-            #   run: |
-            #     if [ github.event.inputs.symfony-git-ref == '' ]; then
-            #     GIT_SSH_COMMAND="ssh -i /tmp/symfony-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.SYMFONY_GIT_REPOSITORY_BRANCH }} ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
-            #     else
-            #     GIT_SSH_COMMAND="ssh -i /tmp/symfony-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ github.event.inputs.symfony-git-ref }} ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
-            #     fi
-
             - name: Clone Symfony repository
               run: |
+                if [ "${{ github.event.inputs.git-ref }}" == '' ]; then
                 GIT_SSH_COMMAND="ssh -i /tmp/symfony-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.SYMFONY_GIT_REPOSITORY_BRANCH }} ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
+                else
+                GIT_SSH_COMMAND="ssh -i /tmp/symfony-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ github.event.inputs.symfony-git-ref }} ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
+                fi
+
+            # - name: Clone Symfony repository
+            #   run: |
+            #     GIT_SSH_COMMAND="ssh -i /tmp/symfony-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.SYMFONY_GIT_REPOSITORY_BRANCH }} ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
                 
 
             - name: Remove Symfony git deploy key
