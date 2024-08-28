@@ -19,6 +19,12 @@ on:
       git-ref:
         description: 'Git Reference (Optional. branch/commit hash)'
         required: false
+      symfony-git-ref:
+        description: 'Symfony Git Reference (Optional. branch/commit hash)'
+        required: false
+      react-git-ref:
+        description: 'React Git Reference (Optional. branch/commit hash)'
+        required: false
       jira-id:
         description: 'Jira Release ID (Optional)'
         required: false
@@ -29,6 +35,9 @@ env:
     DATADOG_API_KEY: ${{ secrets.DD_API_KEY_SANDBOX }}
     GIT_BRANCH: main
     REPO_URL: https://github.com/Eugentk/docker
+    SYMFONY_GIT_DEPLOY_KEY: ${{ secrets.SYMFONY_GIT_DEPLOY_KEY }}
+    SYMFONY_GIT_REPOSITORY_URL: "git@github.com:SellerAmp/sas-react.git"
+    SYMFONY_GIT_REPOSITORY_BRANCH: dev
 
 jobs:
     build:
@@ -76,5 +85,21 @@ jobs:
                 sed -ri~ "/^APP_VERSION=/s/=.*/=$APP_VERSION/" .env
               shell: bash
 
-            - name: test .env
-              run: cat .env
+            - name: Copy Symfony git deploy key
+              run: |
+                touch /tmp/symfony-git-deploy-key.pem
+                echo "${{ env.SYMFONY_GIT_DEPLOY_KEY }}" > /tmp/symfony-git-deploy-key.pem
+                chmod 0600 /tmp/symfony-git-deploy-key.pem
+              shell: bash
+      
+            - name: Clone Symfony repository
+              run: |
+                mkdir -p /tmp/symfony
+                if [ github.event.inputs.symfony-git-ref == '' ]; then
+                GIT_SSH_COMMAND="ssh -i /tmp/symfony-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.SYMFONY_GIT_REPOSITORY_BRANCH }} ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
+                else
+                GIT_SSH_COMMAND="ssh -i /tmp/symfony-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ github.event.inputs.symfony-git-ref }} ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
+                fi
+
+            - name: Remove Symfony git deploy key
+              run: rm /tmp/symfony-git-deploy-key.pem
