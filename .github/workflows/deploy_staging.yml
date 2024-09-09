@@ -109,3 +109,10 @@ jobs:
 
             - name: Remove Symfony git deploy key
               run: rm /tmp/symfony-git-deploy-key.pem
+
+            - name: check .env
+              run: ls -la /tmp/symfony
+            
+            - name: Is file .env created
+              if: ${{ hashFiles('/tmp/symfony/.env') != '' }}
+              run: rm /tmp/symfony/.env
