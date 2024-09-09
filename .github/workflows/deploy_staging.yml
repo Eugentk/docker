@@ -114,5 +114,17 @@ jobs:
               run: ls -la /tmp/symfony
             
             - name: Is file .env created
-              if: ${{ hashFiles('/tmp/symfony/.env') != '' }}
-              run: rm /tmp/symfony/.env
+              env: 
+                file: /tmp/symfony/.env
+              shell: bash
+              run: |
+                if [[ -f $file ]]; then
+                  echo "$FILE exists!"
+                  rm /tmp/symfony/.env
+                else
+                  echo "$FILE does not exist!"
+                fi
+              
+            - name: check .env
+              run: ls -la /tmp/symfony
+              
