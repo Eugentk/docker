@@ -70,11 +70,14 @@ jobs:
               run: sed -i~ '/^SHORT_GIT_HASH=/s/=.*/=${{steps.git-hash.outputs.short_git_hash}}/' .env
 
             - name: set app version in .env file
+              id: get-version
               run: |
                 APP_VERSION=`./generate_version.sh -p`
-                APP_VERSION=$(echo "$APP_VERSION" | sed 's/\//\\\//g')
-                sed -ri~ "/^APP_VERSION=/s/=.*/=$APP_VERSION/" .env
+                echo "APP_VERSION=$(echo "$APP_VERSION" | sed 's/\//\\\//g')" >> "$GITHUB_OUTPUT"
               shell: bash
+            
+            - name: set app version in php .env file
+              run: sed -ri~ "/^APP_VERSION=/s/=.*/=${{steps.get-version.outputs.app_version}}/" .env
 
             - name: test .env
               run: cat .env
