@@ -8,6 +8,14 @@ on:
         description: 'Setup/configure required software on EC2 instances (Optional)'
         default: false
         type: boolean
+      deploy-nginx:
+        description: 'Deploy nginx service (Optional)'
+        default: false
+        type: boolean
+      deploy_datadog:
+        description: 'Deploy datadog service (Optional)'
+        default: false
+        type: boolean
       deployment-env:
         description: 'Deployment environment'
         required: true
@@ -67,6 +75,7 @@ jobs:
               run: echo "short_git_hash=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
             
             - name: short commit
+              if: github.event.inputs.deploy-nginx == 'true'
               run: sed -i~ '/^SHORT_GIT_HASH=/s/=.*/=${{steps.git-hash.outputs.short_git_hash}}/' .env
 
             - name: set app version in .env file
@@ -80,4 +89,5 @@ jobs:
               run: sed -ri~ "/^APP_VERSION=/s/=.*/=${{steps.get-version.outputs.app_version}}/" .env
 
             - name: test .env
+              if: github.event.inputs.deploy_datadog == 'true'
               run: cat .env
