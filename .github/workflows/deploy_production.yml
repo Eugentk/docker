@@ -2,7 +2,7 @@ name: Production. CI/CD with Blue/Green Deployment
 run-name: ${{ github.actor }} is running GitHub Actions 🚀
 
 on:
-  workflow_dispatch:
+  push:
     branches:
       - dev
     inputs:
