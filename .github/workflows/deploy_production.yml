@@ -12,11 +12,11 @@ on:
         type: boolean
       deploy-nginx:
         description: 'Deploy nginx service (Optional)'
-        default: false
+        default: true
         type: boolean
       deploy_datadog:
         description: 'Deploy datadog service (Optional)'
-        default: false
+        default: true
         type: boolean
       deployment-env:
         description: 'Deployment environment'
