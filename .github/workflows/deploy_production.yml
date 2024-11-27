@@ -3,6 +3,8 @@ run-name: ${{ github.actor }} is running GitHub Actions 🚀
 
 on:
   workflow_dispatch:
+    branches:
+      - dev
     inputs:
       software-setup:
         description: 'Setup/configure required software on EC2 instances (Optional)'
