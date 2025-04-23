@@ -15,7 +15,7 @@ env:
   AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_DEFAULT_REGION: eu-west-2
-  SELLERAMP_HOST_IP:
+  SELLERAMP_HOST_IP: ${{ secrets.HOST_IP }}
   SELLERAMP_SSH_KEY_SECRET_NAME: sandbox/selleramp_ssh_key
   SELLERAMP_USER_NAME: ubuntu
   DOCKER_STACK_NAME_GREEN: selleramp-sas-green
