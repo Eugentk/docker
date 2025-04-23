@@ -1,0 +1,66 @@
+name: Sandbox. Switch Consumers (Blue)
+run-name: Switch to ${{ inputs.deployment-type }} Environment by ${{ github.actor }} 🚀
+
+on:
+  workflow_call:
+    inputs:
+      deployment-type:
+        required: true
+        type: string
+
+
+env:
+  AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: eu-west-2
+  SELLERAMP_HOST_IP: ${{ secrets.HOST_IP }}
+  SELLERAMP_SSH_KEY_SECRET_NAME: sandbox/selleramp_ssh_key
+  SELLERAMP_USER_NAME: ubuntu
+  DOCKER_STACK_NAME_GREEN: selleramp-sas-green
+  DOCKER_STACK_NAME_BLUE: selleramp-sas-blue
+
+jobs:
+  switch:
+    runs-on: ubuntu-latest
+    environment: sandbox
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Get secrets from aws secret manager
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: |
+              SELLERAMP_SSH_KEY, ${{ env.SELLERAMP_SSH_KEY_SECRET_NAME }}
+          parse-json-secrets: true
+
+      - name: Disable consumers on Green
+        id: disable_consumers_green
+        uses: fifsky/ssh-action@master
+        with:
+            command: |
+                docker service update ${{ env.DOCKER_STACK_NAME_GREEN }}_ba-allocate-batch-consumer --replicas=0 --force
+                docker service update ${{ env.DOCKER_STACK_NAME_GREEN }}_ba-process-high-priority-consumer --replicas=0 --force
+                docker service update ${{ env.DOCKER_STACK_NAME_GREEN }}_ba-process-low-priority-consumer --replicas=0 --force
+            host: ${{ env.SELLERAMP_HOST_IP }}
+            user: ${{ env.SELLERAMP_USER_NAME }}
+            key: ${{ env.SELLERAMP_SSH_KEY }}
+        if: ( github.event.inputs.deployment-type == 'blue' )
+
+      - name: Launch consumers on Blue
+        uses: fifsky/ssh-action@master
+        with:
+            command: |
+                docker service update ${{ env.DOCKER_STACK_NAME_BLUE }}_ba-allocate-batch-consumer --replicas=1 --force
+                docker service update ${{ env.DOCKER_STACK_NAME_BLUE }}_ba-process-high-priority-consumer --replicas=2 --force
+                docker service update ${{ env.DOCKER_STACK_NAME_BLUE }}_ba-process-low-priority-consumer --replicas=2 --force
+            host: ${{ env.SELLERAMP_HOST_IP }}
+            user: ${{ env.SELLERAMP_USER_NAME }}
+            key: ${{ env.SELLERAMP_SSH_KEY }}
+        if: |
+            always() &&
+            github.event.inputs.deployment-type == 'blue' && steps.disable_consumers_green.outcome == 'success'
