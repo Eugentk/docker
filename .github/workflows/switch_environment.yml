@@ -25,7 +25,7 @@ jobs:
         if: ( github.event.inputs.deployment-type == 'green' )
     
   switch_consumers:
-    uses: Eugentk/docker/.github/workflows/change_consumers.yml@dev
+    uses: Eugentk/docker/.github/workflows/change_consumers_blue.yml@dev
     with:
       deployment-type: github.event.inputs.deployment-type
     secrets: inherit
