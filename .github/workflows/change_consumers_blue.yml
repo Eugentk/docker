@@ -1,4 +1,4 @@
-name: Sandbox. Switch Consumers (Blue)
+name: Sandbox. Switch Consumers
 run-name: Switch to ${{ inputs.deployment-type }} Environment by ${{ github.actor }} 🚀
 
 on:
@@ -64,3 +64,30 @@ jobs:
         if: |
             always() &&
             github.event.inputs.deployment-type == 'blue' && steps.disable_consumers_green.outcome == 'success'
+
+      - name: Disable consumers on Blue
+        id: disable_consumers_blue
+        uses: fifsky/ssh-action@master
+        with:
+            command: |
+                docker service update ${{ env.DOCKER_STACK_NAME_BLUE }}_ba-allocate-batch-consumer --replicas=0 --force
+                docker service update ${{ env.DOCKER_STACK_NAME_BLUE }}_ba-process-high-priority-consumer --replicas=0 --force
+                docker service update ${{ env.DOCKER_STACK_NAME_BLUE }}_ba-process-low-priority-consumer --replicas=0 --force
+            host: ${{ env.SELLERAMP_HOST_IP }}
+            user: ${{ env.SELLERAMP_USER_NAME }}
+            key: ${{ env.SELLERAMP_SSH_KEY }}
+        if: ( github.event.inputs.deployment-type == 'green' )
+
+      - name: Launch consumers on Green
+        uses: fifsky/ssh-action@master
+        with:
+            command: |
+                docker service update ${{ env.DOCKER_STACK_NAME_GREEN }}_ba-allocate-batch-consumer --replicas=1 --force
+                docker service update ${{ env.DOCKER_STACK_NAME_GREEN }}_ba-process-high-priority-consumer --replicas=2 --force
+                docker service update ${{ env.DOCKER_STACK_NAME_GREEN }}_ba-process-low-priority-consumer --replicas=2 --force
+            host: ${{ env.SELLERAMP_HOST_IP }}
+            user: ${{ env.SELLERAMP_USER_NAME }}
+            key: ${{ env.SELLERAMP_SSH_KEY }}
+        if: |
+            always() &&
+            github.event.inputs.deployment-type == 'green' && steps.disable_consumers_blue.outcome == 'success'

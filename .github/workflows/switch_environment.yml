@@ -24,8 +24,8 @@ jobs:
         run: echo "This workflow run for green"
         if: ( github.event.inputs.deployment-type == 'green' )
     
-  call-workflow-passing-data:
-    uses: Eugentk/docker/.github/workflows/change_consumers_blue.yml@dev
+  switch_consumers:
+    uses: Eugentk/docker/.github/workflows/change_consumers.yml@dev
     with:
       deployment-type: github.event.inputs.deployment-type
     secrets: inherit
