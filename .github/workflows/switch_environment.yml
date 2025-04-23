@@ -12,7 +12,7 @@ on:
           - green
 
 jobs:
-  switch:
+  switch_environment:
     runs-on: ubuntu-latest
     environment: sandbox
     steps:

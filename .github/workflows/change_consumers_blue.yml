@@ -20,7 +20,7 @@ env:
   DOCKER_STACK_NAME_BLUE: selleramp-sas-blue
 
 jobs:
-  switch:
+  switch_consumers:
     runs-on: ubuntu-latest
     environment: sandbox
     steps:
