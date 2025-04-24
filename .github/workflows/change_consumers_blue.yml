@@ -7,7 +7,16 @@ on:
       deployment-type:
         required: true
         type: string
-
+        
+  workflow_dispatch:
+    inputs:
+      deployment-type:
+        description: 'Switch Consumers'
+        required: true
+        type: choice
+        options:
+          - blue
+          - green
 
 env:
   AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
@@ -58,9 +67,9 @@ jobs:
         uses: fifsky/ssh-action@master
         with:
             command: |
-                docker service update ${{ env.DOCKER_STACK_NAME_BLUE }}_ba-allocate-batch-consumer --replicas=${{ env.BATCH_CONSUMER_REPLICA_COUNT}} --force
-                docker service update ${{ env.DOCKER_STACK_NAME_BLUE }}_ba-process-high-priority-consumer --replicas=${{ env.HIGH_PRIORITY_CONSUMER_REPLICA_COUNT}} --force
-                docker service update ${{ env.DOCKER_STACK_NAME_BLUE }}_ba-process-low-priority-consumer --replicas=${{ env.LOW_PRIORITY_CONSUMER_REPLICA_COUNT}} --force
+                docker service update ${{ env.DOCKER_STACK_NAME_BLUE }}_ba-allocate-batch-consumer --replicas=${{ env.BATCH_CONSUMER_REPLICA_COUNT }} --force
+                docker service update ${{ env.DOCKER_STACK_NAME_BLUE }}_ba-process-high-priority-consumer --replicas=${{ env.HIGH_PRIORITY_CONSUMER_REPLICA_COUNT }} --force
+                docker service update ${{ env.DOCKER_STACK_NAME_BLUE }}_ba-process-low-priority-consumer --replicas=${{ env.LOW_PRIORITY_CONSUMER_REPLICA_COUNT }} --force
             host: ${{ env.SELLERAMP_HOST_IP }}
             user: ${{ env.SELLERAMP_USER_NAME }}
             key: ${{ env.SELLERAMP_SSH_KEY }}
