@@ -1,0 +1,22 @@
+name: Production. Block IP on WAF
+run-name: ${{ github.actor }} is running GitHub Actions 🚀
+
+on:
+  workflow_dispatch:
+    inputs:
+      bad-ip:
+        description: 'Input Ip for block'
+        required: true
+     
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        name: Block IP
+        steps:
+            
+            - name: show ip
+              run: echo "Blocked IP ${{ github.event.inputs.bad_ip }}"
+            
+
+              
