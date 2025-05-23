@@ -1,93 +1,32 @@
-name: Stage. CI/CD with Multiple Deployment
-run-name: Deploy ${{ inputs.git-ref }} to ${{ inputs.deployment-env }} by ${{ github.actor }} 🚀
+name: Stage. Switch Environment (Blue/Green)
+run-name: Switch to ${{ inputs.deployment-type }} Environment by ${{ github.actor }} 🚀
 on:
   workflow_dispatch:
     inputs:
-      software-setup:
-        description: 'Setup/configure required software on EC2 instances (Optional)'
-        default: false
-        type: boolean
-      deploy-nginx:
-        description: 'Deploy nginx service (Optional)'
-        default: false
-        type: boolean
-      deploy-datadog:
-        description: 'Deploy datadog service (Optional)'
-        default: false
-        type: boolean
-      deployment-env:
-        description: 'Deployment environment'
+      deployment-type:
+        description: 'Switch Environment'
         required: true
-        default: 'blue'
         type: choice
         options:
           - blue
           - green
           - red
           - white
-      git-ref:
-        description: 'Git Reference (Optional. branch/commit hash)'
-        required: false
-      symfony-git-ref:
-        description: 'Symfony Git Reference (Optional. branch/commit hash)'
-        required: false
-      react-git-ref:
-        description: 'React Git Reference (Optional. branch/commit hash)'
-        required: false
-      jira-id:
-        description: 'Jira Release ID (Optional)'
-        required: false
-
-concurrency:
-  group: stage
-  cancel-in-progress: false
-
 env:
   AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_DEFAULT_REGION: eu-west-2
-  ENV_FILE_SECRET_NAME: stage/env
-  YII_ENV_FILE_SECRET_NAME: stage/yii_env
-  API_KEY_SECRET_NAME: stage/api_keys
-  SYMFONY_ENV_FILE_SECRET_NAME: stage/symfony_env
-  DATABASE_SECRET_NAME: stage/db
-  SELLERAMP_SSH_KEY_SECRET_NAME: stage/selleramp_ssh_key
-  REACT_ENV_FILE_SECRET_NAME: stage/react_env_file
-  DOCKER_REPOSITORY_DOMAIN: 055854167589.dkr.ecr.eu-west-2.amazonaws.com
-  DOCKER_REPOSITORY_SOURCE_CODE_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-stage
-  DOCKER_REPOSITORY_SOURCE_CODE_SYMFONY_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-symfony-stage
-  DOCKER_REPOSITORY_NGINX_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-nginx-stage
-  DOCKER_REPOSITORY_PHP_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-php-stage
-  DOCKER_REPOSITORY_PHP_SYMFONY_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-php-symfony-stage
-  DOCKER_REPOSITORY_DATADOG_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-datadog-stage
-  DOCKER_REPOSITORY_REACT_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-react-stage
-  INFRASTRUCTURE_GIT_REPOSITORY_URL: "git@github.com:SellerAmp/selleramp-infrastructure.git"
-  INFRASTRUCTURE_GIT_REPOSITORY_BRANCH: stage
-  INFRASTRUCTURE_GIT_DEPLOY_KEY_SECRET_NAME: stage/infrastructure_git_deploy_key
-  SYMFONY_GIT_REPOSITORY_URL: "git@github.com:SellerAmp/sas-symfony.git"
-  SYMFONY_GIT_REPOSITORY_BRANCH: stage
-  SYMFONY_GIT_DEPLOY_KEY_SECRET_NAME: stage/symfony_git_deploy_key
-  SAS_GIT_DEPLOY_KEY_SECRET_NAME: stage/sas_git_deploy_key
-  DATADOG_API_KEY_SECRET_NAME: stage/datadog_api_key
-  REACT_GIT_REPOSITORY_URL: "git@github.com:SellerAmp/sas-react.git"
-  REACT_GIT_REPOSITORY_BRANCH: stage
-  REACT_GIT_DEPLOY_KEY_SECRET_NAME: stage/react_git_deploy_key
-  GIT_BRANCH: stage
-  GIT_SERVER_URL: ${{ github.server_url }}
-  GIT_REPO_URL: ${{ github.repository }}
-  SLACK_WEBHOOK_SECRET_NAME: stage/slack_webhook
-  SLACK_CHANNEL: deployment
-  WORKFLOW_ENV: Stage
+  ELB_LISTENER_ARN: arn:aws:elasticloadbalancing:eu-west-2:055854167589:listener/app/sas-app-lb-stage/0273c5bf0d01ab52/ee46bf03270bb022
+  BLUE_TARGET_GROUP_ARN: arn:aws:elasticloadbalancing:eu-west-2:055854167589:targetgroup/sas-app-blue-tg-stage/501ac1b353f29215
+  GREEN_TARGET_GROUP_ARN: arn:aws:elasticloadbalancing:eu-west-2:055854167589:targetgroup/sas-app-green-tg-stage/eb116f20925cccc0
+  RED_TARGET_GROUP_ARN: arn:aws:elasticloadbalancing:eu-west-2:055854167589:targetgroup/sas-app-red-tg-stage/eb116f20925cccc0
+  WHITE_TARGET_GROUP_ARN: arn:aws:elasticloadbalancing:eu-west-2:055854167589:targetgroup/sas-app-white-tg-stage/eb116f20925cccc0
 
 jobs:
-  software-setup:
-    name: 'Setup/configure required software on EC2 instances'
-    if: github.event.inputs.software-setup == 'true'
+  switch:
     runs-on: ubuntu-latest
     environment: stage
-    concurrency: stage-${{ github.ref }}
     steps:
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -95,320 +34,36 @@ jobs:
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
-      - name: Get secrets from aws secret manager
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
-        with:
-          secret-ids: |
-              INFRASTRUCTURE_GIT_DEPLOY_KEY, ${{ env.INFRASTRUCTURE_GIT_DEPLOY_KEY_SECRET_NAME }}
-              SAS_GIT_DEPLOY_KEY, ${{ env.SAS_GIT_DEPLOY_KEY_SECRET_NAME }}
-              SELLERAMP_SSH_KEY, ${{ env.SELLERAMP_SSH_KEY_SECRET_NAME }}
-          parse-json-secrets: true
-
-      - name: Copy Infrastructure git deploy key
+      - name: Get Default Action Target Group
+        id: get-current
         run: |
-          touch /tmp/deploy-key-file.pem
-          echo "${{ env.INFRASTRUCTURE_GIT_DEPLOY_KEY }}" > /tmp/deploy-key-file.pem
-          chmod 0600 /tmp/deploy-key-file.pem
-        shell: bash
+           CURRENT_TG=$(aws elbv2 describe-listeners \
+             --listener-arns "${{ env.ELB_LISTENER_ARN }}" \
+             --query "Listeners[0].DefaultActions[0].TargetGroupArn" \
+             --output text)
 
-      - name: Clone Infrastructure repository
+            echo "current_tg=$CURRENT_TG" >> "$GITHUB_OUTPUT"
+
+      - name: Switch Status tag to a new Blue environment
         run: |
-          mkdir -p /tmp/infrastructure
-          GIT_SSH_COMMAND="ssh -i /tmp/deploy-key-file.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.INFRASTRUCTURE_GIT_REPOSITORY_BRANCH }} ${{ env.INFRASTRUCTURE_GIT_REPOSITORY_URL }} .
+            aws elbv2 remove-tags --resource-arns ${{ steps.get-current.outputs.current_tg }} --tag-keys Status
+            aws elbv2 add-tags --resource-arns ${{ env.BLUE_TARGET_GROUP_ARN }} --tags Key=Status,Value=Live
+        if: ( github.event.inputs.deployment-type == 'blue' )
 
-      - name: Remove Infrastructure git deploy key
-        run: rm /tmp/deploy-key-file.pem
-
-      - name: Copy SAS git deploy key
+      - name: Switch Status tag to a new Green environment
         run: |
-          touch ./keys/git-deploy-key
-          echo "${{ env.SAS_GIT_DEPLOY_KEY }}" > ./keys/git-deploy-key
-          chmod 0600 ./keys/git-deploy-key
-        shell: bash
+            aws elbv2 remove-tags --resource-arns ${{ steps.get-current.outputs.current_tg }} --tag-keys Status
+            aws elbv2 add-tags --resource-arns ${{ env.GREEN_TARGET_GROUP_ARN }} --tags Key=Status,Value=Live
+        if: ( github.event.inputs.deployment-type == 'green' )
 
-      - name: Copy SSH key
+      - name: Switch Status tag to a new Red environment
         run: |
-          touch ./keys/selleramp-stage
-          echo "${{ env.SELLERAMP_SSH_KEY }}" > ./keys/selleramp-stage
-          chmod 0600 ./keys/selleramp-stage
-        shell: bash
+            aws elbv2 remove-tags --resource-arns ${{ steps.get-current.outputs.current_tg }} --tag-keys Status
+            aws elbv2 add-tags --resource-arns ${{ env.RED_TARGET_GROUP_ARN }} --tags Key=Status,Value=Live
+        if: ( github.event.inputs.deployment-type == 'red' )
 
-      - name: Get Ansible version
-        run: ansible-playbook --version
-
-      - name: Run Ansible scripts to setup and configure required software on EC2 instances
-        run: ansible-playbook -i ansible/inventory/stage  ansible/stage-playbook.yml --tags setup -vv
-
-  build-multiple-env:
-    name: 'Build for ${{ inputs.deployment-env }} environment'
-    if: |
-      always() &&
-      (needs.software-setup.result == 'success' || needs.software-setup.result == 'skipped')
-    runs-on: ubuntu-latest
-    environment: stage
-    concurrency: stage-${{ github.ref }}
-    needs: [software-setup]
-    steps:
-
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.GIT_BRANCH }}
-        if: github.event.inputs.git-ref == ''
-
-      - name: Checkout Repository (Custom Git Reference)
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.git-ref }}
-        if: github.event.inputs.git-ref != ''
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
-
-      - name: Get secrets from aws secret manager
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
-        with:
-          secret-ids: |
-              INFRASTRUCTURE_GIT_DEPLOY_KEY, ${{ env.INFRASTRUCTURE_GIT_DEPLOY_KEY_SECRET_NAME }}
-              SAS_GIT_DEPLOY_KEY, ${{ env.SAS_GIT_DEPLOY_KEY_SECRET_NAME }}
-              SYMFONY_GIT_DEPLOY_KEY, ${{ env.SYMFONY_GIT_DEPLOY_KEY_SECRET_NAME }}
-              REACT_GIT_DEPLOY_KEY, ${{ env.REACT_GIT_DEPLOY_KEY_SECRET_NAME }}
-              ,${{ env.DATADOG_API_KEY_SECRET_NAME }}
-              ,${{ env.SLACK_WEBHOOK_SECRET_NAME }}
-          parse-json-secrets: true
-
-      - name: Get git message
-        id: deploy-message
+      - name: Switch Status tag to a new White environment
         run: |
-          msg=$(git log -1 --format=%B)
-          echo "commit_msg<<EOF"$'\n'"$msg"$'\n'EOF >> "$GITHUB_OUTPUT"
-          echo "commit_sha=$(git log -1 --format=%H)" >> "$GITHUB_OUTPUT"
-
-      - name: Copy Infrastructure git deploy key
-        run: |
-          touch /tmp/deploy-key-file.pem
-          echo "${{ env.INFRASTRUCTURE_GIT_DEPLOY_KEY }}" > /tmp/deploy-key-file.pem
-          chmod 0600 /tmp/deploy-key-file.pem
-        shell: bash
-
-      - name: Clone Infrastructure repository
-        run: |
-          mkdir -p /tmp/infrastructure
-          GIT_SSH_COMMAND="ssh -i /tmp/deploy-key-file.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.INFRASTRUCTURE_GIT_REPOSITORY_BRANCH }} ${{ env.INFRASTRUCTURE_GIT_REPOSITORY_URL }} /tmp/infrastructure
-
-      - name: Remove Infrastructure git deploy key
-        run: rm /tmp/deploy-key-file.pem
-
-      - name: Copy Symfony git deploy key
-        run: |
-          touch /tmp/symfony-git-deploy-key.pem
-          echo "${{ env.SYMFONY_GIT_DEPLOY_KEY }}" > /tmp/symfony-git-deploy-key.pem
-          chmod 0600 /tmp/symfony-git-deploy-key.pem
-          mkdir -p /tmp/symfony
-        shell: bash
-
-      - name: Clone Symfony repository
-        run: |
-          if [ "${{ github.event.inputs.symfony-git-ref }}" == '' ]; then
-          GIT_SSH_COMMAND="ssh -i /tmp/symfony-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.SYMFONY_GIT_REPOSITORY_BRANCH }} ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
-          else
-          GIT_SSH_COMMAND="ssh -i /tmp/symfony-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ github.event.inputs.symfony-git-ref }} ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
-          fi
-
-      - name: Remove Symfony git deploy key
-        run: rm /tmp/symfony-git-deploy-key.pem
-
-      - name: Copy react git deploy key
-        run: |
-          touch /tmp/react-git-deploy-key.pem
-          echo "${{ env.REACT_GIT_DEPLOY_KEY }}" > /tmp/react-git-deploy-key.pem
-          chmod 0600 /tmp/react-git-deploy-key.pem
-          mkdir -p /tmp/react
-        shell: bash
-
-      - name: Clone react repository
-        run: |
-          if [ "${{ github.event.inputs.react-git-ref }}" == '' ]; then
-          GIT_SSH_COMMAND="ssh -i /tmp/react-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.REACT_GIT_REPOSITORY_BRANCH }} ${{ env.REACT_GIT_REPOSITORY_URL }} /tmp/react
-          else
-          GIT_SSH_COMMAND="ssh -i /tmp/react-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ github.event.inputs.react-git-ref }} ${{ env.REACT_GIT_REPOSITORY_URL }} /tmp/react
-          fi
-
-      - name: Remove react git deploy key
-        run: rm /tmp/react-git-deploy-key.pem
-
-      - name: copy generate version script from infrastructure repository
-        run: cp /tmp/infrastructure/generate_version.sh generate_version.sh
-
-      - name: generate .env file
-        run: ./aws_secret_manager.sh  ${{ env.ENV_FILE_SECRET_NAME }} .env
-
-      - name: get yii_env file
-        run: ./aws_secret_manager.sh  ${{ env.YII_ENV_FILE_SECRET_NAME }} .env
-
-      - name: get db secrets
-        run: ./aws_secret_manager.sh  ${{ env.DATABASE_SECRET_NAME }} .env
-
-      - name: get api keys secret
-        run: ./aws_secret_manager.sh  ${{ env.API_KEY_SECRET_NAME }} .env
-
-      - name: Install packages via composer
-        run: docker compose run --rm php composer install
-
-      - name: Init Yii Framework environment
-        run: docker compose run --rm php php init --env=Production --overwrite=All
-
-      - name: set app version in .env file
-        run: |
-          APP_VERSION=`./generate_version.sh`
-          APP_VERSION=$(echo "$APP_VERSION" | sed 's/\//\\\//g')
-          sed -ri~ "/^APP_VERSION=/s/=.*/=$APP_VERSION/" .env
-        shell: bash
-
-      - name: set deployment env to .env variable
-        run: sed -i~ '/^BLUE_GREEN_ENV=/s/=.*/=${{ inputs.deployment-env }}/' .env
-
-      - name: set jira release id .env variable
-        run: sed -i~ '/^JIRA_RELEASE_ID=/s/=.*/=${{inputs.jira-id}}/' .env
-
-      - name: set short commit
-        id: git-hash
-        run: echo "short_git_hash=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: set short git commit .env variable
-        run: sed -i~ '/^SHORT_GIT_HASH=/s/=.*/=${{steps.git-hash.outputs.short_git_hash}}/' .env
-
-      - name: Is symfony .env file exist
-        env:
-            file: /tmp/symfony/.env
-        shell: bash
-        run: |
-          if [[ -f $file ]]; then
-            echo "$file exists!"
-            rm /tmp/symfony/.env
-          else
-            echo "$file does not exist!"
-          fi
-
-      - name: generate symfony .env file
-        run: ./aws_secret_manager.sh  ${{ env.ENV_FILE_SECRET_NAME }} /tmp/symfony/.env
-
-      - name: get symfony_env file
-        run: ./aws_secret_manager.sh  ${{ env.SYMFONY_ENV_FILE_SECRET_NAME }} /tmp/symfony/.env
-
-      - name: get db secrets
-        run: ./aws_secret_manager.sh  ${{ env.DATABASE_SECRET_NAME }} /tmp/symfony/.env
-
-      - name: get api keys secret
-        run: ./aws_secret_manager.sh  ${{ env.API_KEY_SECRET_NAME }}  /tmp/symfony/.env
-
-      - name: set app version in symfony .env file
-        run: |
-          APP_VERSION=`./generate_version.sh`
-          APP_VERSION=$(echo "$APP_VERSION" | sed 's/\//\\\//g')
-          sed -ri~ "/^APP_VERSION=/s/=.*/=$APP_VERSION/" /tmp/symfony/.env
-        shell: bash
-
-      - name: Install symfony packages via composer
-        run: cd /tmp/symfony && docker compose run --rm php-symfony composer install
-
-      - name: set deployment symfony env to .env variable
-        run: sed -i~ '/^BLUE_GREEN_ENV=/s/=.*/=${{ inputs.deployment-env }}/' /tmp/symfony/.env
-
-      - name: Set Datadog env
-        if: github.event.inputs.deploy-datadog == 'true'
-        run: echo "APP_ENV=$(awk -F '=' '/APP_ENV=/{print $2}' .env)" >> $GITHUB_ENV
-
-      - name: generate react .env file
-        run: ./aws_secret_manager.sh  ${{ env.REACT_ENV_FILE_SECRET_NAME }} /tmp/react/.env
-
-      - name: set deployment env in react .env variable
-        run: sed -i~ 's/{environment}/${{ inputs.deployment-env }}/' /tmp/react/.env
-
-      - name: set app version in react .env file
-        run: |
-          NEXT_PUBLIC_VERSION=`./generate_version.sh`
-          NEXT_PUBLIC_VERSION=$(echo "$NEXT_PUBLIC_VERSION" | sed 's/\//\\\//g')
-          sed -ri~ "/^NEXT_PUBLIC_VERSION=/s/=.*/=$NEXT_PUBLIC_VERSION/" /tmp/react/.env
-        shell: bash
-
-      - name: set deployment env in react .env
-        run: sed -i~ '/^NEXT_PUBLIC_BLUE_GREEN_ENV=/s/=.*/=${{ inputs.deployment-env }}/' /tmp/react/.env
-
-      - name: Build image with the source code
-        run: docker compose build --no-cache --force-rm code
-
-      - name: Build image with the symfony source code
-        run: cd /tmp/symfony && docker compose build --no-cache --force-rm code-symfony
-
-      - name: Build image with the nginx
-        if: github.event.inputs.deploy-nginx == 'true'
-        run: docker compose build --no-cache --force-rm --build-arg TEMPLATES_PATH=./conf.d_templates/stage nginx
-
-      - name: Build image with the php
-        run: docker compose build --no-cache --force-rm php
-
-      - name: Build image with the php-symfony
-        run: cd /tmp/symfony && docker compose build --no-cache --force-rm php-symfony
-
-      - name: Build image with the datadog agent
-        if: github.event.inputs.deploy-datadog == 'true'
-        run: docker build -f ./docker/datadog/Dockerfile -t datadog --build-arg DD_API_KEY=${{ env.DATADOG_API_KEY }} --build-arg DD_ENV=${{ env.APP_ENV }} .
-
-      - name: Build image with the react source code
-        run: cd /tmp/react && docker build -t sas-react .
-
-      - name: Authorize to AWS ECR
-        run: aws ecr get-login-password --region ${{ env.AWS_DEFAULT_REGION }} | docker login --username AWS --password-stdin  ${{ env.DOCKER_REPOSITORY_DOMAIN }}
-
-      - name: Set environment-based Docker tag
-        id: docker_tag
-        run: echo "tag=${{ inputs.deployment-env }}" >> "$GITHUB_OUTPUT"
-
-      - name: Push image with the source code to Docker registry
-        run: |
-          docker tag sas-code:latest ${{ env.DOCKER_REPOSITORY_SOURCE_CODE_URI }}
-          docker tag ${{ env.DOCKER_REPOSITORY_SOURCE_CODE_URI }}:latest ${{ env.DOCKER_REPOSITORY_SOURCE_CODE_URI }}:${{ steps.docker_tag.outputs.tag }}
-          docker push ${{ env.DOCKER_REPOSITORY_SOURCE_CODE_URI }}:${{ steps.docker_tag.outputs.tag }}
-
-      - name: Push image with the source code-symfony to Docker registry
-        run: |
-          docker tag symfony-code-symfony:latest ${{ env.DOCKER_REPOSITORY_SOURCE_CODE_SYMFONY_URI }}
-          docker tag ${{ env.DOCKER_REPOSITORY_SOURCE_CODE_SYMFONY_URI }}:latest ${{ env.DOCKER_REPOSITORY_SOURCE_CODE_SYMFONY_URI }}:${{ steps.docker_tag.outputs.tag }}
-          docker push ${{ env.DOCKER_REPOSITORY_SOURCE_CODE_SYMFONY_URI }}:${{ steps.docker_tag.outputs.tag }}
-
-      - name: Push image with the nginx to Docker registry
-        if: github.event.inputs.deploy-nginx == 'true'
-        run: |
-          docker tag sas-nginx:latest ${{ env.DOCKER_REPOSITORY_NGINX_URI }}
-          docker tag ${{ env.DOCKER_REPOSITORY_NGINX_URI }}:latest ${{ env.DOCKER_REPOSITORY_NGINX_URI }}:${{ steps.docker_tag.outputs.tag }}
-          docker push ${{ env.DOCKER_REPOSITORY_NGINX_URI }}:${{ steps.docker_tag.outputs.tag }}
-
-      - name: Push image with the php to Docker registry
-        run: |
-          docker tag sas-php:latest ${{ env.DOCKER_REPOSITORY_PHP_URI }}
-          docker tag ${{ env.DOCKER_REPOSITORY_PHP_URI }}:latest ${{ env.DOCKER_REPOSITORY_PHP_URI }}:${{ steps.docker_tag.outputs.tag }}
-          docker push ${{ env.DOCKER_REPOSITORY_PHP_URI }}:${{ steps.docker_tag.outputs.tag }}
-
-      - name: Push image with the php-symfony to Docker registry
-        run: |
-          docker tag symfony-php-symfony:latest ${{ env.DOCKER_REPOSITORY_PHP_SYMFONY_URI }}
-          docker tag ${{ env.DOCKER_REPOSITORY_PHP_SYMFONY_URI }}:latest ${{ env.DOCKER_REPOSITORY_PHP_SYMFONY_URI }}:${{ steps.docker_tag.outputs.tag }}
-          docker push ${{ env.DOCKER_REPOSITORY_PHP_SYMFONY_URI }}:${{ steps.docker_tag.outputs.tag }}
-
-      - name: Push image with the datadog agent to Docker registry
-        if: github.event.inputs.deploy-datadog == 'true'
-        run: |
-          docker tag datadog:latest ${{ env.DOCKER_REPOSITORY_DATADOG_URI }}
-          docker tag ${{ env.DOCKER_REPOSITORY_DATADOG_URI }}:latest ${{ env.DOCKER_REPOSITORY_DATADOG_URI }}:${{ steps.docker_tag.outputs.tag }}
-          docker push ${{ env.DOCKER_REPOSITORY_DATADOG_URI }}:${{ steps.docker_tag.outputs.tag }}
-
-      - name: Push image with the react to Docker registry
-        run: |
-          docker tag sas-react:latest ${{ env.DOCKER_REPOSITORY_REACT_URI }}
-          docker tag ${{ env.DOCKER_REPOSITORY_REACT_URI }}:latest ${{ env.DOCKER_REPOSITORY_REACT_URI }}:${{ steps.docker_tag.outputs.tag }}
-          docker push ${{ env.DOCKER_REPOSITORY_REACT_URI }}:${{ steps.docker_tag.outputs.tag }}
+            aws elbv2 remove-tags --resource-arns ${{ steps.get-current.outputs.current_tg }} --tag-keys Status
+            aws elbv2 add-tags --resource-arns ${{ env.WHITE_TARGET_GROUP_ARN }} --tags Key=Status,Value=Live
+        if: ( github.event.inputs.deployment-type == 'white' )
