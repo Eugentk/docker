@@ -1,0 +1,34 @@
+name: Create Tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      Tag:
+        description: 'Tag name (e.g. v1.0.0)'
+        required: true
+        type: string
+      Tag_message:
+        description: 'Message for the tag'
+        required: true
+        type: string
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push tag
+        run: |
+          TAG_NAME="${{ github.event.inputs.Tag }}"
+          TAG_MESSAGE="${{ github.event.inputs.Tag_message }}"
+          git tag -a "$TAG_NAME" -m "$TAG_MESSAGE"
+          git push origin "$TAG_NAME"
