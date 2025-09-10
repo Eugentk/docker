@@ -1,10 +1,11 @@
-name: Create Tag
+name: Setup Release Tag
+run-name: Setup release tag by ${{ github.actor }} 🚀
 
 on:
   workflow_dispatch:
     inputs:
       Tag:
-        description: 'Tag name (e.g. v1.0.0)'
+        description: 'Tag name (e.g. 1.490.0)'
         required: true
         type: string
       Tag_message:
@@ -15,6 +16,11 @@ on:
 permissions:
   contents: write
 
+env:
+    GIT_BRANCH: main
+    TAG_NAME: "${{ github.event.inputs.Tag }}"
+    TAG_MESSAGE: "${{ github.event.inputs.Tag_message }}"
+
 jobs:
   create-tag:
     runs-on: ubuntu-latest
@@ -23,21 +29,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
+          ref: ${{ env.GIT_BRANCH }}
+          
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Create and push tag
+      - name: Create and push tag for SAS repository
         run: |
-          TAG_NAME="${{ github.event.inputs.Tag }}"
-          TAG_MESSAGE="${{ github.event.inputs.Tag_message }}"
-
           if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
             echo "❌ Tag $TAG_NAME already exists"
             exit 1
           fi
-
           git tag -a "$TAG_NAME" -m "$TAG_MESSAGE"
           git push origin "$TAG_NAME"
