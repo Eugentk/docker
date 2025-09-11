@@ -1,4 +1,4 @@
-name: Setup Release Tag
+name: Production. Setup Release Tag
 run-name: Setup release tag by ${{ github.actor }} 🚀
 
 on:
@@ -29,7 +29,7 @@ env:
     REACT_GIT_DEPLOY_KEY_SECRET_NAME: github/react_git_deploy_key
 
 jobs:
-  create-tag:
+  create-release-tag:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout SAS repository
