@@ -10,11 +10,18 @@ on:
         options:
           - blue
           - green
+      tag:
+        description: 'Tag name (e.g. 1.490.0) (Optional)'
+        required: false
+        type: string
+      tag_message:
+        description: 'Message for the tag (Optional)'
+        required: false
+        type: string
 
 jobs:
   switch_environment:
     runs-on: ubuntu-latest
-    environment: sandbox
     steps:
       - name: Switch Status tag to a new Blue environment
         run: echo "This workflow run for blue"
@@ -25,7 +32,8 @@ jobs:
         if: ( github.event.inputs.deployment-type == 'green' )
     
   switch_consumers:
-    uses: Eugentk/docker/.github/workflows/change_consumers_blue.yml@dev
+    uses: Eugentk/docker/.github/workflows/set_release_tag.yml@dev
     with:
-      deployment-type: github.event.inputs.deployment-type
+      tag: github.event.inputs.tag
+      tag_name: github.event.inputs.tag_message
     secrets: inherit

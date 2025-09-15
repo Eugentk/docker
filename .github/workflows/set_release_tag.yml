@@ -2,7 +2,7 @@ name: Production. Setup Release Tag
 run-name: Setup release tag by ${{ github.actor }} 🚀
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       Tag:
         description: 'Tag name (e.g. 1.490.0)'
@@ -23,10 +23,10 @@ env:
     GIT_BRANCH: main
     TAG_NAME: "${{ github.event.inputs.Tag }}"
     TAG_MESSAGE: "${{ github.event.inputs.Tag_message }}"
-    SYMFONY_GIT_REPOSITORY_URL: "git@github.com:Eugentk/Actions.git" #"git@github.com:SellerAmp/sas-symfony.git"
-    SYMFONY_GIT_DEPLOY_KEY_SECRET_NAME: github/symfony_git_deploy_key
-    REACT_GIT_REPOSITORY_URL: "git@github.com:Eugentk/webhook_jenkins.git" #"git@github.com:SellerAmp/sas-react.git"
-    REACT_GIT_DEPLOY_KEY_SECRET_NAME: github/react_git_deploy_key
+    SYMFONY_GIT_REPOSITORY_URL: "git@github.com:Eugentk/webhook_jenkins.git"
+    SYMFONY_GIT_DEPLOY_KEY_SECRET_NAME: ${{ secrets.SYMFONY_GIT_DEPLOY_KEY }}
+    REACT_GIT_REPOSITORY_URL: "git@github.com:Eugentk/Actions.git"
+    REACT_GIT_DEPLOY_KEY_SECRET_NAME: ${{ secrets.REACT_GIT_DEPLOY_KEY }}
 
 jobs:
   create-release-tag:
