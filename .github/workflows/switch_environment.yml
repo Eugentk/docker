@@ -12,16 +12,16 @@ on:
           - green
       tag:
         description: 'Tag name (e.g. 1.490.0) (Optional)'
-        required: true
+        required: false
         type: string
       tag_message:
         description: 'Message for the tag (Optional)'
-        required: true
+        required: false
         type: string
 
 permissions:
   contents: write   
-  
+
 jobs:
   switch_environment:
     runs-on: ubuntu-latest
