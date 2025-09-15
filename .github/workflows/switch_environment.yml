@@ -35,7 +35,7 @@ jobs:
         if: ( github.event.inputs.deployment-type == 'green' )
     
   setup-release-tag:
-    if: ${{ github.event.inputs.tag != '' }}
+    if: github.event.inputs.tag != ''
     uses: Eugentk/docker/.github/workflows/set_release_tag.yml@dev
     with:
       tag: github.event.inputs.tag
