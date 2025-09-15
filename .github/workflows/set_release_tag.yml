@@ -52,25 +52,10 @@ jobs:
           git tag -a "$TAG_NAME" -m "$TAG_MESSAGE"
           git push origin "$TAG_NAME"
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
-
-      - name: Get secrets from aws secret manager
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
-        with:
-          secret-ids: |
-              SYMFONY_GIT_DEPLOY_KEY, ${{ env.SYMFONY_GIT_DEPLOY_KEY_SECRET_NAME }}
-              REACT_GIT_DEPLOY_KEY, ${{ env.REACT_GIT_DEPLOY_KEY_SECRET_NAME }}
-          parse-json-secrets: true
-
       - name: Copy Symfony git deploy key
         run: |
           touch /tmp/symfony-git-deploy-key.pem
-          echo "${{ env.SYMFONY_GIT_DEPLOY_KEY }}" > /tmp/symfony-git-deploy-key.pem
+          echo "${{ env.SYMFONY_GIT_DEPLOY_KEY_SECRET_NAME }}" > /tmp/symfony-git-deploy-key.pem
           chmod 0600 /tmp/symfony-git-deploy-key.pem
           mkdir -p /tmp/symfony
         shell: bash
@@ -101,7 +86,7 @@ jobs:
       - name: Copy react git deploy key
         run: |
           touch /tmp/react-git-deploy-key.pem
-          echo "${{ env.REACT_GIT_DEPLOY_KEY }}" > /tmp/react-git-deploy-key.pem
+          echo "${{ env. REACT_GIT_DEPLOY_KEY_SECRET_NAME }}" > /tmp/react-git-deploy-key.pem
           chmod 0600 /tmp/react-git-deploy-key.pem
           mkdir -p /tmp/react
         shell: bash
