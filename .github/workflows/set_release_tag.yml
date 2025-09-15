@@ -45,8 +45,12 @@ jobs:
 
       - name: Create and push tag for SAS repository
         run: |
-          git tag -a "$TAG_NAME" -m "$TAG_MESSAGE"
-          git push origin "$TAG_NAME"
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo " 💡 Tag $TAG_NAME already exists — skipping"
+          else
+            git tag -a "$TAG_NAME" -m "$TAG_MESSAGE"
+            git push origin "$TAG_NAME"
+          fi
 
       - name: Copy Symfony git deploy key
         run: |
@@ -69,8 +73,12 @@ jobs:
       - name: Create and push tag for SAS-Symfony repository
         run: |
           cd /tmp/symfony
-          git tag -a "$TAG_NAME" -m "$TAG_MESSAGE"
-          GIT_SSH_COMMAND="ssh -i /tmp/symfony-git-deploy-key.pem -o StrictHostKeyChecking=no" git push origin ${{ env.TAG_NAME }}
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo " 💡 Tag $TAG_NAME already exists — skipping"
+          else
+            git tag -a "$TAG_NAME" -m "$TAG_MESSAGE"
+            GIT_SSH_COMMAND="ssh -i /tmp/symfony-git-deploy-key.pem -o StrictHostKeyChecking=no" git push origin ${{ env.TAG_NAME }}
+          fi
 
       - name: Remove Symfony git deploy key
         run: rm /tmp/symfony-git-deploy-key.pem
@@ -96,8 +104,12 @@ jobs:
       - name: Create and push tag for SAS-React repository
         run: |
           cd /tmp/react
-          git tag -a "$TAG_NAME" -m "$TAG_MESSAGE"
-          GIT_SSH_COMMAND="ssh -i /tmp/react-git-deploy-key.pem -o StrictHostKeyChecking=no" git push origin ${{ env.TAG_NAME }}
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo " 💡 Tag $TAG_NAME already exists — skipping"
+          else
+            git tag -a "$TAG_NAME" -m "$TAG_MESSAGE"
+            GIT_SSH_COMMAND="ssh -i /tmp/react-git-deploy-key.pem -o StrictHostKeyChecking=no" git push origin ${{ env.TAG_NAME }}
+          fi
 
       - name: Remove react git deploy key
         run: rm /tmp/react-git-deploy-key.pem
