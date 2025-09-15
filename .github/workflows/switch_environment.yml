@@ -18,7 +18,7 @@ on:
         description: 'Message for the tag (Optional)'
         required: false
         type: string
-
+    
 permissions:
   contents: write   
 
@@ -34,7 +34,8 @@ jobs:
         run: echo "This workflow run for green"
         if: ( github.event.inputs.deployment-type == 'green' )
     
-  switch_consumers:
+  setup-release-tag:
+    if: ${{ github.event.inputs.tag != '' }}
     uses: Eugentk/docker/.github/workflows/set_release_tag.yml@dev
     with:
       tag: github.event.inputs.tag
