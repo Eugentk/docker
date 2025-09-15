@@ -12,11 +12,11 @@ on:
           - green
       tag:
         description: 'Tag name (e.g. 1.490.0) (Optional)'
-        required: false
+        required: true
         type: string
       tag_message:
         description: 'Message for the tag (Optional)'
-        required: false
+        required: true
         type: string
 
 jobs:
