@@ -30,6 +30,7 @@ env:
 
 jobs:
   create-release-tag:
+    name: 'Setup release tag'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout SAS repository

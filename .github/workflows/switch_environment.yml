@@ -28,8 +28,9 @@ permissions:
 
 jobs:
   software-setup:
-    runs-on: ubuntu-latest
+    name: 'Setup/configure required software on EC2 instances'
     if: github.event.inputs.software-setup == 'true'
+    runs-on: ubuntu-latest
     steps:
       - name: Switch Status tag to a new Blue environment
         run: echo "This workflow run for blue"
@@ -47,7 +48,7 @@ jobs:
     name: 'Build for Blue environment'
     if: |
       always() &&
-      github.event.inputs.deployment-type == 'blue' && (needs.software-setup.result == 'success' || needs.software-setup.result == 'skipped')
+      github.event.inputs.deployment-type == 'blue'
     runs-on: ubuntu-latest
     steps:
       - name: Switch Status tag to a new Blue environment
