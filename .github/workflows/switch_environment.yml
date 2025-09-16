@@ -46,9 +46,13 @@ jobs:
 
   build-blue-env:
     name: 'Build for Blue environment'
+    needs: [software-setup, setup-release-tag]
     if: |
       always() &&
-      github.event.inputs.deployment-type == 'blue'
+      github.event.inputs.deployment-type == 'blue' && 
+      (needs.setup-release-tag.result == 'success' || needs.setup-release-tag.result == 'skipped' ) &&
+      (needs.software-setup.result == 'success' || needs.software-setup.result == 'skipped')
+
     runs-on: ubuntu-latest
     steps:
       - name: Switch Status tag to a new Blue environment
