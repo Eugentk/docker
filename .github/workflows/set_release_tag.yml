@@ -107,7 +107,7 @@ jobs:
       - name: Create and push tag for SAS-React repository
         run: |
           cd /tmp/react &&
-          GET_TAGS="ssh -i /tmp/react-git-deploy-key.pem -o StrictHostKeyChecking=no" git fetch --tags ${{ env.REACT_GIT_REPOSITORY_URL }}
+          GIT_SSH_COMMAND="ssh -i /tmp/react-git-deploy-key.pem -o StrictHostKeyChecking=no" git fetch --tags ${{ env.REACT_GIT_REPOSITORY_URL }}
           if git tag --list | grep -q "^${TAG_NAME}$"; then
             echo " 💡 Tag $TAG_NAME already exists in git history"
             exit 1
