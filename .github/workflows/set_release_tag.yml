@@ -63,14 +63,8 @@ jobs:
         shell: bash
 
       - name: Clone Symfony repository
-        uses: actions/checkout@v5
-        with:
-          repository: ${{ env.SYMFONY_GIT_REPOSITORY_URL }}
-          ssh-key: ${{ secrets.SYMFONY_GIT_DEPLOY_KEY }}
-          ssh-known-hosts: github.com
-          fetch-depth: 0
-          ref: ${{ env.GIT_BRANCH }}
-          path: symfony
+        run: |
+          GIT_SSH_COMMAND="ssh -i /tmp/symfony-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.GIT_BRANCH }} ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
 
       - name: Configure SAS-Symfony Git user
         run: |
