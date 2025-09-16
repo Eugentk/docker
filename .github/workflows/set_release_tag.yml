@@ -96,7 +96,7 @@ jobs:
 
       - name: Clone react repository
         run: |
-          GIT_SSH_COMMAND="ssh -i /tmp/react-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.GIT_BRANCH }} ${{ env.REACT_GIT_REPOSITORY_URL }} /tmp/react
+          GIT_SSH_COMMAND="ssh -i /tmp/react-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --branch ${{ env.GIT_BRANCH }} ${{ env.REACT_GIT_REPOSITORY_URL }} /tmp/react
 
       - name: Configure SAS-React Git user
         run: |
@@ -106,7 +106,7 @@ jobs:
 
       - name: Create and push tag for SAS-React repository
         run: |
-          cd /tmp/react && git fetch --tags
+          cd /tmp/react
           if git tag --list | grep -q "^${TAG_NAME}$"; then
             echo " 💡 Tag $TAG_NAME already exists in git history"
             exit 1
