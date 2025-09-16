@@ -75,8 +75,9 @@ jobs:
       - name: Create and push tag for SAS-Symfony repository
         run: |
           cd /tmp/symfony
-          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
-            echo " 💡 Tag $TAG_NAME already exists — skipping"
+          if git tag --list | grep -q "^${TAG_NAME}$"; then
+            echo " 💡 Tag $TAG_NAME already exists in git history"
+            exit 1
           else
             git tag -a "$TAG_NAME" -m "$TAG_MESSAGE"
             GIT_SSH_COMMAND="ssh -i /tmp/symfony-git-deploy-key.pem -o StrictHostKeyChecking=no" git push origin ${{ env.TAG_NAME }}
@@ -106,8 +107,9 @@ jobs:
       - name: Create and push tag for SAS-React repository
         run: |
           cd /tmp/react
-          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
-            echo " 💡 Tag $TAG_NAME already exists — skipping"
+          if git tag --list | grep -q "^${TAG_NAME}$"; then
+            echo " 💡 Tag $TAG_NAME already exists in git history"
+            exit 1
           else
             git tag -a "$TAG_NAME" -m "$TAG_MESSAGE"
             GIT_SSH_COMMAND="ssh -i /tmp/react-git-deploy-key.pem -o StrictHostKeyChecking=no" git push origin ${{ env.TAG_NAME }}
