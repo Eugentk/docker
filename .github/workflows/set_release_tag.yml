@@ -69,7 +69,7 @@ jobs:
           ssh-key: /tmp/symfony-git-deploy-key.pem
           fetch-depth: 0
           ref: ${{ env.GIT_BRANCH }}
-          path: /tmp/symfony
+          path: symfony
 
       - name: Configure SAS-Symfony Git user
         run: |
