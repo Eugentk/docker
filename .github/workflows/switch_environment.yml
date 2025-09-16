@@ -3,6 +3,10 @@ run-name: Switch to ${{ inputs.deployment-type }} Environment by ${{ github.acto
 on:
   workflow_dispatch:
     inputs:
+      software-setup:
+        description: 'Setup/configure required software on EC2 instances (Optional)'
+        default: false
+        type: boolean
       deployment-type:
         description: 'Switch Environment'
         required: true
@@ -23,16 +27,13 @@ permissions:
   contents: write   
 
 jobs:
-  switch_environment:
+  software-setup:
     runs-on: ubuntu-latest
+    if: github.event.inputs.software-setup == 'true'
     steps:
       - name: Switch Status tag to a new Blue environment
         run: echo "This workflow run for blue"
-        if: ( github.event.inputs.deployment-type == 'blue' )
-
-      - name: Switch Load Balancer to Green Target Group
-        run: echo "This workflow run for green"
-        if: ( github.event.inputs.deployment-type == 'green' )
+        
     
   setup-release-tag:
     if: github.event.inputs.tag != ''
@@ -41,3 +42,13 @@ jobs:
       tag: github.event.inputs.tag
       tag_message: github.event.inputs.tag_message
     secrets: inherit
+
+  build-blue-env:
+    name: 'Build for Blue environment'
+    if: |
+      always() &&
+      github.event.inputs.deployment-type == 'blue' && (needs.software-setup.result == 'success' || needs.software-setup.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Switch Status tag to a new Blue environment
+        run: echo "This workflow run for blue"
