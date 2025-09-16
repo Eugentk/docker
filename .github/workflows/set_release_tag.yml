@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout SAS repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           ref: ${{ env.GIT_BRANCH }}
@@ -63,8 +63,13 @@ jobs:
         shell: bash
 
       - name: Clone Symfony repository
-        run: |
-          GIT_SSH_COMMAND="ssh -i /tmp/symfony-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.GIT_BRANCH }} ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.SYMFONY_GIT_REPOSITORY_URL }}
+          ssh-key: /tmp/symfony-git-deploy-key.pem
+          fetch-depth: 0
+          ref: ${{ env.GIT_BRANCH }}
+          path: /tmp/symfony
 
       - name: Configure SAS-Symfony Git user
         run: |
@@ -96,7 +101,7 @@ jobs:
 
       - name: Clone react repository
         run: |
-          GIT_SSH_COMMAND="ssh -i /tmp/react-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --branch ${{ env.GIT_BRANCH }} ${{ env.REACT_GIT_REPOSITORY_URL }} /tmp/react
+          GIT_SSH_COMMAND="ssh -i /tmp/react-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.GIT_BRANCH }} ${{ env.REACT_GIT_REPOSITORY_URL }} /tmp/react
 
       - name: Configure SAS-React Git user
         run: |
@@ -106,7 +111,8 @@ jobs:
 
       - name: Create and push tag for SAS-React repository
         run: |
-          cd /tmp/react
+          cd /tmp/react &&
+          GET_TAGS="ssh -i /tmp/react-git-deploy-key.pem -o StrictHostKeyChecking=no" git fetch --tags ${{ env.REACT_GIT_REPOSITORY_URL }}
           if git tag --list | grep -q "^${TAG_NAME}$"; then
             echo " 💡 Tag $TAG_NAME already exists in git history"
             exit 1
