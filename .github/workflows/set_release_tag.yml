@@ -46,8 +46,9 @@ jobs:
 
       - name: Create and push tag for SAS repository
         run: |
-          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
-            echo " 💡 Tag $TAG_NAME already exists — skipping"
+          if git tag --list | grep -q "^${TAG_NAME}$"; then
+            echo " 💡 Tag $TAG_NAME already exists in git history"
+            exit 1
           else
             git tag -a "$TAG_NAME" -m "$TAG_MESSAGE"
             git push origin "$TAG_NAME"
