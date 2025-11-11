@@ -41,28 +41,6 @@ jobs:
           chmod 0600 /tmp/deploy-key-file.pem
         shell: bash
 
-      - name: Clone Infrastructure repository
-        run: |
-          mkdir -p /tmp/infrastructure
-          GIT_SSH_COMMAND="ssh -i /tmp/deploy-key-file.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.INFRASTRUCTURE_GIT_REPOSITORY_BRANCH }} ${{ env.INFRASTRUCTURE_GIT_REPOSITORY_URL }} .
-
-      - name: Remove Infrastructure git deploy key
-        run: rm /tmp/deploy-key-file.pem
-
-      - name: Copy SAS git deploy key
-        run: |
-          touch ./keys/git-deploy-key
-          echo "${{ env.SAS_GIT_DEPLOY_KEY }}" > ./keys/git-deploy-key
-          chmod 0600 ./keys/git-deploy-key
-        shell: bash
-
-      - name: Copy SSH key
-        run: |
-          touch ./keys/selleramp-stage
-          echo "${{ env.SELLERAMP_SSH_KEY }}" > ./keys/selleramp-stage
-          chmod 0600 ./keys/selleramp-stage
-        shell: bash
-
       - name: Get Ansible version
         run: ansible-playbook --version
 
