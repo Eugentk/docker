@@ -1,4 +1,4 @@
-name: Stage. Run jobs parallel 
+name: _Stage. Run jobs parallel 
 run-name: Deploy stage by ${{ github.actor }} 🚀
 
 on:
@@ -29,7 +29,7 @@ jobs:
 
   build_symfony:
     if: github.event.inputs.tag != ''
-    uses: ./.github/workflows/subtasks/deploy_symfony.yml
+    uses: ./.github/workflows/deploy_symfony.yml
     with:
         tag: github.event.inputs.tag
         tag_message: github.event.inputs.tag_message
