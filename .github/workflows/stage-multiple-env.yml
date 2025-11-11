@@ -69,6 +69,7 @@ jobs:
   software-setup:
     if: github.event.inputs.software-setup == 'true'
     uses: Eugentk/docker/.github/workflows/stage-software-setup.yml@dev # Change branch name
+    secrets: inherit
 
   build-yii:
     name: 'Build yii for ${{ inputs.deployment-env }} environment'
