@@ -4,16 +4,11 @@ on:
     inputs:
       deployment-env:
         description: 'Deployment environment'
+        type: string
         required: true
-        default: 'blue'
-        type: choice
-        options:
-          - blue
-          - green
-          - red
-          - white
       git-ref:
         description: 'Git Reference (Optional. branch/commit hash)'
+        type: string
         required: false
 
 env:

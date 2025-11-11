@@ -5,16 +5,12 @@ on:
       deployment-env:
         description: 'Deployment environment'
         required: true
-        default: 'blue'
-        type: choice
-        options:
-          - blue
-          - green
-          - red
-          - white
+        type: string
       react-git-ref:
         description: 'React Git Reference (Optional. branch/commit hash)'
         required: false
+        type: string
+        
 env:
   AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

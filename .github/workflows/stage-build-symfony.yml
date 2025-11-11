@@ -5,16 +5,11 @@ on:
       deployment-env:
         description: 'Deployment environment'
         required: true
-        default: 'blue'
-        type: choice
-        options:
-          - blue
-          - green
-          - red
-          - white
+        type: string
       symfony-git-ref:
         description: 'Symfony Git Reference (Optional. branch/commit hash)'
         required: false
+        type: string
 env:
   AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
