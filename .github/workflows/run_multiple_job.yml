@@ -29,7 +29,7 @@ jobs:
 
   build_symfony:
     if: github.event.inputs.tag != ''
-    uses: Eugentk/docker/.github/workflows/deploy_symfony.yml@dev
+    uses: ./.github/workflows/subtasks/deploy_symfony.yml@dev
     with:
         tag: github.event.inputs.tag
         tag_message: github.event.inputs.tag_message
