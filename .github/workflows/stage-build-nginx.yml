@@ -21,7 +21,7 @@ env:
 
 jobs:
   build-nginx:
-    name: 'Build nginx for {{ inputs.deployment-env }} environment'
+    name: 'Build nginx for ${{ inputs.deployment-env }} environment'
     runs-on: ubuntu-latest
     environment: stage
     steps:

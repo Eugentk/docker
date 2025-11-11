@@ -22,7 +22,7 @@ env:
 
 jobs:
   build-datadog:
-    name: 'Build datadog for {{ inputs.deployment-env }} environment'
+    name: 'Build datadog for ${{ inputs.deployment-env }} environment'
     runs-on: ubuntu-latest
     environment: stage
     steps:
