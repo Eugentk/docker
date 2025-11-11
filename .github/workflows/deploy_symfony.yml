@@ -24,7 +24,6 @@ jobs:
   create-release-tag:
     name: 'Setup release tag'
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - name: Checkout SAS repository
         uses: actions/checkout@v5

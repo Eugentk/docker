@@ -2,7 +2,7 @@ name: Stage. Run jobs parallel
 run-name: Deploy stage by ${{ github.actor }} 🚀
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       tag:
         description: 'Tag name (e.g. 1.490.0)'
