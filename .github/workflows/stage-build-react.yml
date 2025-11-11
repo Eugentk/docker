@@ -10,7 +10,7 @@ on:
         description: 'React Git Reference (Optional. branch/commit hash)'
         required: false
         type: string
-        
+
 env:
   AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -19,7 +19,7 @@ env:
   DOCKER_REPOSITORY_DOMAIN: 055854167589.dkr.ecr.eu-west-2.amazonaws.com
   DOCKER_REPOSITORY_REACT_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-react-stage
   REACT_GIT_REPOSITORY_URL: "git@github.com:SellerAmp/sas-react.git"
-  REACT_GIT_REPOSITORY_BRANCH: stage
+  REACT_GIT_REPOSITORY_BRANCH: dev
   REACT_GIT_DEPLOY_KEY_SECRET_NAME: stage/react_git_deploy_key
 
 jobs:
@@ -27,7 +27,6 @@ jobs:
     name: 'Build react for {{ inputs.deployment-env }} environment'
     runs-on: ubuntu-latest
     environment: stage
-    concurrency: stage-${{ github.ref }}
     steps:
 
       - name: Configure AWS Credentials

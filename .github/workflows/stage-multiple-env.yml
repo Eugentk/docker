@@ -58,7 +58,7 @@ env:
   INFRASTRUCTURE_GIT_REPOSITORY_BRANCH: stage
   INFRASTRUCTURE_GIT_DEPLOY_KEY_SECRET_NAME: stage/infrastructure_git_deploy_key
   SAS_GIT_DEPLOY_KEY_SECRET_NAME: stage/sas_git_deploy_key
-  GIT_BRANCH: stage
+  GIT_BRANCH: dev
   GIT_SERVER_URL: ${{ github.server_url }}
   GIT_REPO_URL: ${{ github.repository }}
   SLACK_WEBHOOK_SECRET_NAME: stage/slack_webhook

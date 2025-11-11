@@ -17,7 +17,7 @@ env:
   AWS_DEFAULT_REGION: eu-west-2
   DOCKER_REPOSITORY_NGINX_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-nginx-stage
   DOCKER_REPOSITORY_DOMAIN: 055854167589.dkr.ecr.eu-west-2.amazonaws.com
-  GIT_BRANCH: stage
+  GIT_BRANCH: dev
 
 jobs:
   build-nginx:
