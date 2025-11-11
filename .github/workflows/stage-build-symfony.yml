@@ -1,0 +1,63 @@
+name: _Stage. Build symfony docker images
+on:
+  workflow_call:
+    inputs:
+      deployment-env:
+        description: 'Deployment environment'
+        required: true
+        default: 'blue'
+        type: choice
+        options:
+          - blue
+          - green
+          - red
+          - white
+      symfony-git-ref:
+        description: 'Symfony Git Reference (Optional. branch/commit hash)'
+        required: false
+env:
+  AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: eu-west-2
+  ENV_FILE_SECRET_NAME: stage/env
+  API_KEY_SECRET_NAME: stage/api_keys
+  SYMFONY_ENV_FILE_SECRET_NAME: stage/symfony_env
+  DATABASE_SECRET_NAME: stage/db
+  DOCKER_REPOSITORY_DOMAIN: 055854167589.dkr.ecr.eu-west-2.amazonaws.com
+  DOCKER_REPOSITORY_SOURCE_CODE_SYMFONY_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-symfony-stage
+  DOCKER_REPOSITORY_PHP_SYMFONY_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-php-symfony-stage
+  SYMFONY_GIT_REPOSITORY_URL: "git@github.com:SellerAmp/sas-symfony.git"
+  SYMFONY_GIT_REPOSITORY_BRANCH: stage
+  SYMFONY_GIT_DEPLOY_KEY_SECRET_NAME: stage/symfony_git_deploy_key
+  GIT_BRANCH: stage
+  WORKFLOW_ENV: Stage
+
+jobs:
+  build-symfony:
+    name: 'Build symfony for {{ inputs.deployment-env }} environment'
+    runs-on: ubuntu-latest
+    environment: stage
+    concurrency: stage-${{ github.ref }}
+    steps:
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Get secrets from aws secret manager
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: |
+              SYMFONY_GIT_DEPLOY_KEY, ${{ env.SYMFONY_GIT_DEPLOY_KEY_SECRET_NAME }}
+          parse-json-secrets: true
+
+      - name: Copy Symfony git deploy key
+        run: |
+          echo "Symfony git deploy key"
+        shell: bash
+
+
+      

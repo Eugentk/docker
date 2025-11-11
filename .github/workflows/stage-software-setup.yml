@@ -1,0 +1,70 @@
+name: _Stage. Software setup
+on:
+  workflow_call:
+
+env:
+  AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: eu-west-2
+  INFRASTRUCTURE_GIT_DEPLOY_KEY_SECRET_NAME: stage/infrastructure_git_deploy_key
+  SAS_GIT_DEPLOY_KEY_SECRET_NAME: stage/sas_git_deploy_key
+  SELLERAMP_SSH_KEY_SECRET_NAME: stage/selleramp_ssh_key
+
+jobs:
+  software-setup:
+    name: 'Setup/configure required software on EC2 instances'
+    runs-on: ubuntu-latest
+    environment: stage
+    concurrency: stage-${{ github.ref }}
+    steps:
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Get secrets from aws secret manager
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: |
+              INFRASTRUCTURE_GIT_DEPLOY_KEY, ${{ env.INFRASTRUCTURE_GIT_DEPLOY_KEY_SECRET_NAME }}
+              SAS_GIT_DEPLOY_KEY, ${{ env.SAS_GIT_DEPLOY_KEY_SECRET_NAME }}
+              SELLERAMP_SSH_KEY, ${{ env.SELLERAMP_SSH_KEY_SECRET_NAME }}
+          parse-json-secrets: true
+
+      - name: Copy Infrastructure git deploy key
+        run: |
+          touch /tmp/deploy-key-file.pem
+          echo "${{ env.INFRASTRUCTURE_GIT_DEPLOY_KEY }}" > /tmp/deploy-key-file.pem
+          chmod 0600 /tmp/deploy-key-file.pem
+        shell: bash
+
+      - name: Clone Infrastructure repository
+        run: |
+          mkdir -p /tmp/infrastructure
+          GIT_SSH_COMMAND="ssh -i /tmp/deploy-key-file.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.INFRASTRUCTURE_GIT_REPOSITORY_BRANCH }} ${{ env.INFRASTRUCTURE_GIT_REPOSITORY_URL }} .
+
+      - name: Remove Infrastructure git deploy key
+        run: rm /tmp/deploy-key-file.pem
+
+      - name: Copy SAS git deploy key
+        run: |
+          touch ./keys/git-deploy-key
+          echo "${{ env.SAS_GIT_DEPLOY_KEY }}" > ./keys/git-deploy-key
+          chmod 0600 ./keys/git-deploy-key
+        shell: bash
+
+      - name: Copy SSH key
+        run: |
+          touch ./keys/selleramp-stage
+          echo "${{ env.SELLERAMP_SSH_KEY }}" > ./keys/selleramp-stage
+          chmod 0600 ./keys/selleramp-stage
+        shell: bash
+
+      - name: Get Ansible version
+        run: ansible-playbook --version
+
+      - name: Run Ansible scripts to setup and configure required software on EC2 instances
+        run: echo "Run Ansible scripts"

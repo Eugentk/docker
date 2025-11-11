@@ -1,0 +1,230 @@
+name: Stage. CI/CD with Multiple Deployment
+run-name: Deploy ${{ inputs.git-ref }} to ${{ inputs.deployment-env }} by ${{ github.actor }} 🚀
+on:
+  workflow_dispatch:
+    inputs:
+      deployment-env:
+        description: 'Deployment environment'
+        required: true
+        default: 'blue'
+        type: choice
+        options:
+          - blue
+          - green
+          - red
+          - white
+      git-ref:
+        description: 'Git Reference (Optional. branch/commit hash)'
+        required: false
+      symfony-git-ref:
+        description: 'Symfony Git Reference (Optional. branch/commit hash)'
+        required: false
+      react-git-ref:
+        description: 'React Git Reference (Optional. branch/commit hash)'
+        required: false
+      deploy-nginx:
+        description: 'Deploy nginx service (Optional)'
+        default: false
+        type: boolean
+      deploy-datadog:
+        description: 'Deploy datadog service (Optional)'
+        default: false
+        type: boolean
+      software-setup:
+        description: 'Setup/configure required software on EC2 instances (Optional)'
+        default: false
+        type: boolean
+      jira-id:
+        description: 'Jira Release ID (Optional)'
+        required: false
+
+concurrency:
+  group: stage
+  cancel-in-progress: false
+
+env:
+  AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: eu-west-2
+  ENV_FILE_SECRET_NAME: stage/env
+  YII_ENV_FILE_SECRET_NAME: stage/yii_env
+  API_KEY_SECRET_NAME: stage/api_keys
+  DATABASE_SECRET_NAME: stage/db
+  SELLERAMP_SSH_KEY_SECRET_NAME: stage/selleramp_ssh_key
+  DOCKER_REPOSITORY_DOMAIN: 055854167589.dkr.ecr.eu-west-2.amazonaws.com
+  DOCKER_REPOSITORY_SOURCE_CODE_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-stage
+  DOCKER_REPOSITORY_PHP_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-php-stage
+  INFRASTRUCTURE_GIT_REPOSITORY_URL: "git@github.com:SellerAmp/selleramp-infrastructure.git"
+  INFRASTRUCTURE_GIT_REPOSITORY_BRANCH: stage
+  INFRASTRUCTURE_GIT_DEPLOY_KEY_SECRET_NAME: stage/infrastructure_git_deploy_key
+  SAS_GIT_DEPLOY_KEY_SECRET_NAME: stage/sas_git_deploy_key
+  GIT_BRANCH: stage
+  GIT_SERVER_URL: ${{ github.server_url }}
+  GIT_REPO_URL: ${{ github.repository }}
+  SLACK_WEBHOOK_SECRET_NAME: stage/slack_webhook
+  SLACK_CHANNEL: deployment
+  WORKFLOW_ENV: Stage
+
+jobs:
+  software-setup:
+    if: github.event.inputs.software-setup == 'true'
+    uses: Eugentk/docker/.github/workflows/stage-software-setup.yml@dev # Change branch name
+
+  build-yii:
+    name: 'Build yii for ${{ inputs.deployment-env }} environment'
+    if: |
+      always() &&
+      (needs.software-setup.result == 'success' || needs.software-setup.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment: stage
+    concurrency: stage-${{ github.ref }}
+    needs: [software-setup]
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.GIT_BRANCH }}
+        if: github.event.inputs.git-ref == ''
+
+      - name: Checkout Repository (Custom Git Reference)
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.git-ref }}
+        if: github.event.inputs.git-ref != ''
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Get git message
+        id: deploy-message
+        run: |
+          msg=$(git log -1 --format=%B)
+          echo "commit_msg<<EOF"$'\n'"$msg"$'\n'EOF >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$(git log -1 --format=%H)" >> "$GITHUB_OUTPUT"
+
+      - name: generate .env file
+        run: ./aws_secret_manager.sh  ${{ env.ENV_FILE_SECRET_NAME }} .env
+
+      - name: get yii_env file
+        run: ./aws_secret_manager.sh  ${{ env.YII_ENV_FILE_SECRET_NAME }} .env
+
+      - name: get db secrets
+        run: ./aws_secret_manager.sh  ${{ env.DATABASE_SECRET_NAME }} .env
+
+      - name: get api keys secret
+        run: ./aws_secret_manager.sh  ${{ env.API_KEY_SECRET_NAME }} .env
+
+      - name: set deployment env to .env variable
+        run: sed -i~ '/^BLUE_GREEN_ENV=/s/=.*/=${{ inputs.deployment-env }}/' .env
+
+      - name: set short commit
+        id: git-hash
+        run: echo "short_git_hash=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: set short git commit .env variable
+        run: sed -i~ '/^SHORT_GIT_HASH=/s/=.*/=${{steps.git-hash.outputs.short_git_hash}}/' .env
+
+      - name: Build image with the source code
+        run: echo "Build image with the source code"
+
+      - name: Build image with the php
+        run: echo "Build image with the php"
+
+      - name: Authorize to AWS ECR
+        run: aws ecr get-login-password --region ${{ env.AWS_DEFAULT_REGION }} | docker login --username AWS --password-stdin  ${{ env.DOCKER_REPOSITORY_DOMAIN }}
+
+      - name: Set environment-based Docker tag
+        id: docker_tag
+        run: echo "tag=${{ inputs.deployment-env }}" >> "$GITHUB_OUTPUT"
+
+  build-symfony:
+    if: |
+      always() &&
+      (needs.software-setup.result == 'success' || needs.software-setup.result == 'skipped')
+    needs: [software-setup]
+    uses: Eugentk/docker/.github/workflows/stage-build-symfony.yml@dev # Change branch name
+    with:
+        deployment-env: github.event.inputs.deployment-env
+        symfony-git-ref: github.event.inputs.symfony-git-ref
+    secrets: inherit
+
+  build-react:
+    if: |
+      always() &&
+      (needs.software-setup.result == 'success' || needs.software-setup.result == 'skipped')
+    needs: [software-setup]
+    uses: Eugentk/docker/.github/workflows/stage-build-react.yml@dev # Change branch name
+    with:
+        deployment-env: github.event.inputs.deployment-env
+        react-git-ref: github.event.inputs.react-git-ref
+    secrets: inherit
+
+  build-nginx:
+    if: |
+      always() &&
+      (needs.software-setup.result == 'success' || needs.software-setup.result == 'skipped') &&
+      github.event.inputs.deploy-nginx == 'true'
+    needs: [software-setup]
+    uses: Eugentk/docker/.github/workflows/stage-build-nginx.yml@dev # Change branch name
+    with:
+        deployment-env: github.event.inputs.deployment-env
+    secrets: inherit
+
+  build-datadog:
+    if: |
+      always() &&
+      (needs.software-setup.result == 'success' || needs.software-setup.result == 'skipped') &&
+      github.event.inputs.deploy-datadog == 'true'
+    needs: [software-setup]
+    uses: Eugentk/docker/.github/workflows/stage-build-datadog.yml@dev # Change branch name
+    with:
+        deployment-env: github.event.inputs.deployment-env
+    secrets: inherit
+
+  deploy-multiple-env:
+    name: 'Deploy ${{ inputs.deployment-env }} environment'
+    if: |
+      always() &&
+      needs.build-yii.result == 'success' &&
+      needs.build-symfony.result == 'success' &&
+      needs.build-react.result == 'success' &&
+      (needs.build-nginx.result == 'success' || needs.build-nginx.result == 'skipped') &&
+      (needs.build-datadog.result == 'success' || needs.build-datadog.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment: stage
+    concurrency: stage-${{ github.ref }}
+    needs:
+     - build-yii
+     - build-symfony
+     - build-react
+     - build-nginx
+     - build-datadog
+     
+    steps:
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Get secrets from aws secret manager
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: |
+              INFRASTRUCTURE_GIT_DEPLOY_KEY, ${{ env.INFRASTRUCTURE_GIT_DEPLOY_KEY_SECRET_NAME }}
+              SAS_GIT_DEPLOY_KEY, ${{ env.SAS_GIT_DEPLOY_KEY_SECRET_NAME }}
+              SELLERAMP_SSH_KEY, ${{ env.SELLERAMP_SSH_KEY_SECRET_NAME }}
+              ,${{ env.SLACK_WEBHOOK_SECRET_NAME }}
+          parse-json-secrets: true
+
+      - name: Copy Infrastructure git deploy key
+        run: |
+          echo "Deploy"
+        shell: bash

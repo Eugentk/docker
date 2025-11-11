@@ -1,0 +1,62 @@
+name: _Stage. Build datadog docker images
+on:
+  workflow_call:
+    inputs:
+      deployment-env:
+        description: 'Deployment environment'
+        required: true
+        default: 'blue'
+        type: choice
+        options:
+          - blue
+          - green
+          - red
+          - white
+      git-ref:
+        description: 'Git Reference (Optional. branch/commit hash)'
+        required: false
+
+env:
+  AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: eu-west-2
+  DOCKER_REPOSITORY_DATADOG_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-datadog-stage
+  DOCKER_REPOSITORY_DOMAIN: 055854167589.dkr.ecr.eu-west-2.amazonaws.com
+  DATADOG_API_KEY_SECRET_NAME: stage/datadog_api_key
+  GIT_BRANCH: stage
+
+jobs:
+  build-datadog:
+    name: 'Build datadog for {{ inputs.deployment-env }} environment'
+    runs-on: ubuntu-latest
+    environment: stage
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.GIT_BRANCH }}
+        if: github.event.inputs.git-ref == ''
+
+      - name: Checkout Repository (Custom Git Reference)
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.git-ref }}
+        if: github.event.inputs.git-ref != ''
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Get secrets from aws secret manager
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: |
+              ,${{ env.DATADOG_API_KEY_SECRET_NAME }}
+          parse-json-secrets: true
+
+      - name: Set Datadog env
+        run: echo "build datadog"
