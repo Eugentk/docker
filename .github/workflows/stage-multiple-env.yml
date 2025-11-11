@@ -149,8 +149,8 @@ jobs:
     needs: [software-setup]
     uses: Eugentk/docker/.github/workflows/stage-build-symfony.yml@dev # Change branch name
     with:
-        deployment-env: github.event.inputs.deployment-env
-        symfony-git-ref: github.event.inputs.symfony-git-ref
+        deployment-env: ${{ inputs.deployment-env }}
+        symfony-git-ref: ${{ inputs.symfony-git-ref }}
     secrets: inherit
 
   build-react:
@@ -160,8 +160,8 @@ jobs:
     needs: [software-setup]
     uses: Eugentk/docker/.github/workflows/stage-build-react.yml@dev # Change branch name
     with:
-        deployment-env: github.event.inputs.deployment-env
-        react-git-ref: github.event.inputs.react-git-ref
+        deployment-env: ${{ inputs.deployment-env }}
+        react-git-ref: ${{ inputs.react-git-ref }}
     secrets: inherit
 
   build-nginx:
@@ -172,7 +172,7 @@ jobs:
     needs: [software-setup]
     uses: Eugentk/docker/.github/workflows/stage-build-nginx.yml@dev # Change branch name
     with:
-        deployment-env: github.event.inputs.deployment-env
+        deployment-env: ${{ inputs.deployment-env }}
     secrets: inherit
 
   build-datadog:
@@ -183,7 +183,7 @@ jobs:
     needs: [software-setup]
     uses: Eugentk/docker/.github/workflows/stage-build-datadog.yml@dev # Change branch name
     with:
-        deployment-env: github.event.inputs.deployment-env
+        deployment-env: ${{ inputs.deployment-env }}
     secrets: inherit
 
   deploy-multiple-env:

@@ -24,7 +24,7 @@ env:
 
 jobs:
   build-react:
-    name: 'Build react for {{ inputs.deployment-env }} environment'
+    name: 'Build react for ${{ inputs.deployment-env }} environment'
     runs-on: ubuntu-latest
     environment: stage
     steps:
