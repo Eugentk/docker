@@ -21,6 +21,7 @@ env:
   REACT_GIT_REPOSITORY_URL: "git@github.com:SellerAmp/sas-react.git"
   REACT_GIT_REPOSITORY_BRANCH: stage
   REACT_GIT_DEPLOY_KEY_SECRET_NAME: stage/react_git_deploy_key
+  GIT_BRANCH: dev
 
 jobs:
   build-react:
@@ -28,6 +29,15 @@ jobs:
     runs-on: ubuntu-latest
     environment: stage
     steps:
+
+      - name: Checkout sas repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.GIT_BRANCH }}
+          sparse-checkout: |
+            aws_secret_manager.sh
+            generate_version.sh
+          sparse-checkout-cone-mode: false
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
