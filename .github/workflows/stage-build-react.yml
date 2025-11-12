@@ -63,7 +63,10 @@ jobs:
         run: rm /tmp/react-git-deploy-key.pem
 
       - name: generate react .env file
-        run: ./aws_secret_manager.sh  ${{ env.REACT_ENV_FILE_SECRET_NAME }} /tmp/react/.env
+        run: |
+              pwd
+              ls -la
+              ./aws_secret_manager.sh  ${{ env.REACT_ENV_FILE_SECRET_NAME }} /tmp/react/.env
 
       - name: set deployment env in react .env variable
         run: sed -i~ 's/{environment}/${{ inputs.deployment-env }}/' /tmp/react/.env

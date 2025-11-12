@@ -12,6 +12,7 @@ env:
 
 jobs:
   software-setup:
+    name: Install software
     runs-on: ubuntu-latest
     environment: stage
     concurrency: stage-${{ github.ref }}
