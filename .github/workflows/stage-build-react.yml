@@ -90,19 +90,3 @@ jobs:
 
       - name: set deployment env in react .env
         run: sed -i~ '/^NEXT_PUBLIC_BLUE_GREEN_ENV=/s/=.*/=${{ inputs.deployment-env }}/' /tmp/react/.env
-
-      - name: Build image with the react source code
-        run: cd /tmp/react && docker build -t sas-react .
-
-      - name: Authorize to AWS ECR
-        run: aws ecr get-login-password --region ${{ env.AWS_DEFAULT_REGION }} | docker login --username AWS --password-stdin  ${{ env.DOCKER_REPOSITORY_DOMAIN }}
-
-      - name: Set environment-based Docker tag
-        id: docker_tag
-        run: echo "tag=${{ inputs.deployment-env }}" >> "$GITHUB_OUTPUT"
-
-      - name: Push image with the react to Docker registry
-        run: |
-          docker tag sas-react:latest ${{ env.DOCKER_REPOSITORY_REACT_URI }}
-          docker tag ${{ env.DOCKER_REPOSITORY_REACT_URI }}:latest ${{ env.DOCKER_REPOSITORY_REACT_URI }}:${{ steps.docker_tag.outputs.tag }}
-          docker push ${{ env.DOCKER_REPOSITORY_REACT_URI }}:${{ steps.docker_tag.outputs.tag }}

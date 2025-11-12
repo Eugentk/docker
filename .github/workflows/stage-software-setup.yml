@@ -12,7 +12,7 @@ env:
 
 jobs:
   setup:
-    name: software on EC2
+    name: on EC2
     runs-on: ubuntu-latest
     environment: stage
     concurrency: stage-${{ github.ref }}
