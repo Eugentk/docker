@@ -4,12 +4,12 @@ on:
     inputs:
       deployment-env:
         description: 'Deployment environment'
-        type: string
         required: true
+        type: string
       git-ref:
         description: 'Git Reference (Optional. branch/commit hash)'
-        type: string
         required: false
+        type: string
 
 env:
   AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
@@ -18,7 +18,7 @@ env:
   DOCKER_REPOSITORY_DATADOG_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-datadog-stage
   DOCKER_REPOSITORY_DOMAIN: 055854167589.dkr.ecr.eu-west-2.amazonaws.com
   DATADOG_API_KEY_SECRET_NAME: stage/datadog_api_key
-  GIT_BRANCH: dev
+  GIT_BRANCH: stage
 
 jobs:
   build-datadog:
@@ -31,12 +31,18 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ env.GIT_BRANCH }}
+          sparse-checkout: |
+            docker/datadog
+          sparse-checkout-cone-mode: false
         if: github.event.inputs.git-ref == ''
 
       - name: Checkout Repository (Custom Git Reference)
         uses: actions/checkout@v5
         with:
           ref: ${{ github.event.inputs.git-ref }}
+          sparse-checkout: |
+            docker/datadog
+          sparse-checkout-cone-mode: false
         if: github.event.inputs.git-ref != ''
 
       - name: Configure AWS Credentials
@@ -54,4 +60,20 @@ jobs:
           parse-json-secrets: true
 
       - name: Set Datadog env
-        run: echo "build datadog"
+        run: echo "APP_ENV=$(awk -F '=' '/APP_ENV=/{print $2}' .env)" >> $GITHUB_ENV
+
+      - name: Build image with the datadog agent
+        run: docker build -f ./docker/datadog/Dockerfile -t datadog --build-arg DD_API_KEY=${{ env.DATADOG_API_KEY }} --build-arg DD_ENV=${{ env.APP_ENV }} .
+
+      - name: Authorize to AWS ECR
+        run: aws ecr get-login-password --region ${{ env.AWS_DEFAULT_REGION }} | docker login --username AWS --password-stdin  ${{ env.DOCKER_REPOSITORY_DOMAIN }}
+
+      - name: Set environment-based Docker tag
+        id: docker_tag
+        run: echo "tag=${{ inputs.deployment-env }}" >> "$GITHUB_OUTPUT"
+
+      - name: Push image with the datadog agent to Docker registry
+        run: |
+          docker tag datadog:latest ${{ env.DOCKER_REPOSITORY_DATADOG_URI }}
+          docker tag ${{ env.DOCKER_REPOSITORY_DATADOG_URI }}:latest ${{ env.DOCKER_REPOSITORY_DATADOG_URI }}:${{ steps.docker_tag.outputs.tag }}
+          docker push ${{ env.DOCKER_REPOSITORY_DATADOG_URI }}:${{ steps.docker_tag.outputs.tag }}
