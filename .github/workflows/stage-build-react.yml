@@ -19,12 +19,12 @@ env:
   DOCKER_REPOSITORY_DOMAIN: 055854167589.dkr.ecr.eu-west-2.amazonaws.com
   DOCKER_REPOSITORY_REACT_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-react-stage
   REACT_GIT_REPOSITORY_URL: "git@github.com:SellerAmp/sas-react.git"
-  REACT_GIT_REPOSITORY_BRANCH: dev
+  REACT_GIT_REPOSITORY_BRANCH: stage
   REACT_GIT_DEPLOY_KEY_SECRET_NAME: stage/react_git_deploy_key
 
 jobs:
   build-react:
-    name: 'Build react for ${{ inputs.deployment-env }} environment'
+    name: 'Build react for {{ inputs.deployment-env }} environment'
     runs-on: ubuntu-latest
     environment: stage
     steps:
@@ -43,5 +43,53 @@ jobs:
               REACT_GIT_DEPLOY_KEY, ${{ env.REACT_GIT_DEPLOY_KEY_SECRET_NAME }}
           parse-json-secrets: true
 
+      - name: Copy react git deploy key
+        run: |
+          touch /tmp/react-git-deploy-key.pem
+          echo "${{ env.REACT_GIT_DEPLOY_KEY }}" > /tmp/react-git-deploy-key.pem
+          chmod 0600 /tmp/react-git-deploy-key.pem
+          mkdir -p /tmp/react
+        shell: bash
+
+      - name: Clone react repository
+        run: |
+          if [ "${{ github.event.inputs.react-git-ref }}" == '' ]; then
+          GIT_SSH_COMMAND="ssh -i /tmp/react-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.REACT_GIT_REPOSITORY_BRANCH }} ${{ env.REACT_GIT_REPOSITORY_URL }} /tmp/react
+          else
+          GIT_SSH_COMMAND="ssh -i /tmp/react-git-deploy-key.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ github.event.inputs.react-git-ref }} ${{ env.REACT_GIT_REPOSITORY_URL }} /tmp/react
+          fi
+
+      - name: Remove react git deploy key
+        run: rm /tmp/react-git-deploy-key.pem
+
       - name: generate react .env file
-        run: echo "Build react"
+        run: ./aws_secret_manager.sh  ${{ env.REACT_ENV_FILE_SECRET_NAME }} /tmp/react/.env
+
+      - name: set deployment env in react .env variable
+        run: sed -i~ 's/{environment}/${{ inputs.deployment-env }}/' /tmp/react/.env
+
+      - name: set app version in react .env file
+        run: |
+          NEXT_PUBLIC_VERSION=`./generate_version.sh`
+          NEXT_PUBLIC_VERSION=$(echo "$NEXT_PUBLIC_VERSION" | sed 's/\//\\\//g')
+          sed -ri~ "/^NEXT_PUBLIC_VERSION=/s/=.*/=$NEXT_PUBLIC_VERSION/" /tmp/react/.env
+        shell: bash
+
+      - name: set deployment env in react .env
+        run: sed -i~ '/^NEXT_PUBLIC_BLUE_GREEN_ENV=/s/=.*/=${{ inputs.deployment-env }}/' /tmp/react/.env
+
+      - name: Build image with the react source code
+        run: cd /tmp/react && docker build -t sas-react .
+
+      - name: Authorize to AWS ECR
+        run: aws ecr get-login-password --region ${{ env.AWS_DEFAULT_REGION }} | docker login --username AWS --password-stdin  ${{ env.DOCKER_REPOSITORY_DOMAIN }}
+
+      - name: Set environment-based Docker tag
+        id: docker_tag
+        run: echo "tag=${{ inputs.deployment-env }}" >> "$GITHUB_OUTPUT"
+
+      - name: Push image with the react to Docker registry
+        run: |
+          docker tag sas-react:latest ${{ env.DOCKER_REPOSITORY_REACT_URI }}
+          docker tag ${{ env.DOCKER_REPOSITORY_REACT_URI }}:latest ${{ env.DOCKER_REPOSITORY_REACT_URI }}:${{ steps.docker_tag.outputs.tag }}
+          docker push ${{ env.DOCKER_REPOSITORY_REACT_URI }}:${{ steps.docker_tag.outputs.tag }}

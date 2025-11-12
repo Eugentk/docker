@@ -12,7 +12,6 @@ env:
 
 jobs:
   software-setup:
-    name: 'Setup/configure required software on EC2 instances'
     runs-on: ubuntu-latest
     environment: stage
     concurrency: stage-${{ github.ref }}
