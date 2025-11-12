@@ -18,7 +18,7 @@ env:
   DOCKER_REPOSITORY_DATADOG_URI: 055854167589.dkr.ecr.eu-west-2.amazonaws.com/sas-datadog-stage
   DOCKER_REPOSITORY_DOMAIN: 055854167589.dkr.ecr.eu-west-2.amazonaws.com
   DATADOG_API_KEY_SECRET_NAME: stage/datadog_api_key
-  GIT_BRANCH: stage
+  GIT_BRANCH: dev
 
 jobs:
   build-datadog:
