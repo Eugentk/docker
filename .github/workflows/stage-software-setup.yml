@@ -11,8 +11,8 @@ env:
   SELLERAMP_SSH_KEY_SECRET_NAME: stage/selleramp_ssh_key
 
 jobs:
-  software-setup:
-    name: Install software
+  setup:
+    name: software on EC2
     runs-on: ubuntu-latest
     environment: stage
     concurrency: stage-${{ github.ref }}

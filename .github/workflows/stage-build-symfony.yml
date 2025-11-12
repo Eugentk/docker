@@ -34,6 +34,15 @@ jobs:
     environment: stage
     steps:
 
+      - name: Checkout sas repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.GIT_BRANCH }}
+          sparse-checkout: |
+            aws_secret_manager.sh
+            generate_version.sh
+          sparse-checkout-cone-mode: false
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
