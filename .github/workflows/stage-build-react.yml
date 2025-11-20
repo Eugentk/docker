@@ -103,7 +103,7 @@ jobs:
       - name: Build image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: /tmp/react
           file: /tmp/react/Dockerfile
           load: true
           tags: sas-react:latest
