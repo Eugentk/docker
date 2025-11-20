@@ -89,34 +89,34 @@ jobs:
       - name: set deployment env in react .env
         run: sed -i~ '/^NEXT_PUBLIC_BLUE_GREEN_ENV=/s/=.*/=${{ inputs.deployment-env }}/' /tmp/react/.env
 
-      - name: Cache Next.js build
-        uses: actions/cache@v4
-        with:
-          path: /tmp/react/.next/cache
-          key: ${{ runner.os }}-nextjs-docker-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-                ${{ runner.os }}-nextjs-docker-
-
-      - name: Build image with the react source code
-        run: cd /tmp/react && ls -la && docker build -t sas-react .
-
-      # - name: Set up Docker Buildx
-      #   uses: docker/setup-buildx-action@v3
-
-      # - name: Build image
-      #   uses: docker/build-push-action@v6
+      # - name: Cache Next.js build
+      #   uses: actions/cache@v4
       #   with:
-      #     context: /tmp/react
-      #     file: /tmp/react/Dockerfile
-      #     load: true
-      #     tags: sas-react:latest
-      #     outputs: type=docker
-      #     cache-from: type=gha
-      #     cache-to: type=gha,mode=max
+      #     path: /tmp/react/.next/cache
+      #     key: ${{ runner.os }}-nextjs-docker-${{ hashFiles('**/package-lock.json') }}
+      #     restore-keys: |
+      #           ${{ runner.os }}-nextjs-docker-
 
-      - name: Extract Next.js cache from container
-        run: |
-         CONTAINER_ID="$(docker create sas-react:latest)"
-         mkdir -p .next
-         docker cp "${CONTAINER_ID}:/app/.next/cache" .next/cache
-         docker rm "${CONTAINER_ID}"
+      # - name: Build image with the react source code
+      #   run: cd /tmp/react && ls -la && docker build -t sas-react .
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: /tmp/react
+          file: /tmp/react/Dockerfile
+          load: true
+          tags: sas-react:latest
+          outputs: type=docker
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # - name: Extract Next.js cache from container
+      #   run: |
+      #    CONTAINER_ID="$(docker create sas-react:latest)"
+      #    mkdir -p .next
+      #    docker cp "${CONTAINER_ID}:/app/.next/cache" .next/cache
+      #    docker rm "${CONTAINER_ID}"
