@@ -118,5 +118,5 @@ jobs:
         run: |
          CONTAINER_ID="$(docker create sas-react:latest)"
          mkdir -p .next
-         docker cp "${CONTAINER_ID}:/tmp/react/.next/cache" .next/cache
+         docker cp "${CONTAINER_ID}:/app/.next/cache" .next/cache
          docker rm "${CONTAINER_ID}"
