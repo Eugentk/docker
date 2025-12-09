@@ -89,13 +89,13 @@ jobs:
       - name: set deployment env in react .env
         run: sed -i~ '/^NEXT_PUBLIC_BLUE_GREEN_ENV=/s/=.*/=${{ inputs.deployment-env }}/' /tmp/react/.env
 
-      - name: Cache Next.js build
-        uses: actions/cache@v4
-        with:
-          path: /tmp/react/.next/cache
-          key: ${{ runner.os }}-nextjs-docker-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-                ${{ runner.os }}-nextjs-docker-
+      # - name: Cache Next.js build
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: /tmp/react/.next/cache
+      #     key: ${{ runner.os }}-nextjs-docker-${{ hashFiles('**/package-lock.json') }}
+      #     restore-keys: |
+      #           ${{ runner.os }}-nextjs-docker-
 
       # - name: Build image with the react source code
       #   run: cd /tmp/react && ls -la && docker build -t sas-react .
@@ -114,9 +114,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Extract Next.js cache from container
-        run: |
-         CONTAINER_ID="$(docker create sas-react:latest)"
-         mkdir -p .next
-         docker cp "${CONTAINER_ID}:/app/.next/cache" .next/cache
-         docker rm "${CONTAINER_ID}"
+      # - name: Extract Next.js cache from container
+      #   run: |
+      #    CONTAINER_ID="$(docker create sas-react:latest)"
+      #    mkdir -p .next
+      #    docker cp "${CONTAINER_ID}:/app/.next/cache" .next/cache
+      #    docker rm "${CONTAINER_ID}"
