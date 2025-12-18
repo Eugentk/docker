@@ -61,7 +61,7 @@ jobs:
 
       - name: Clone Symfony repo
         run: |
-          GIT_SSH_COMMAND="ssh -i /tmp/symfony.pem -o StrictHostKeyChecking=no" git clone --fetch-depth=0 ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
+          GIT_SSH_COMMAND="ssh -i /tmp/symfony.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.GIT_BRANCH }} ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
 
       - name: Move stable tag in Symfony repo
         run: |
@@ -88,7 +88,7 @@ jobs:
 
       - name: Clone React repo
         run: |
-          GIT_SSH_COMMAND="ssh -i /tmp/react.pem -o StrictHostKeyChecking=no" git clone --fetch-depth=0 ${{ env.REACT_GIT_REPOSITORY_URL }} /tmp/react
+          GIT_SSH_COMMAND="ssh -i /tmp/react.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.GIT_BRANCH }} ${{ env.REACT_GIT_REPOSITORY_URL }} /tmp/react
 
       - name: Move stable tag in React repo
         run: |
