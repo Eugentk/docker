@@ -1,7 +1,7 @@
 name: Production. Setup Stable Tag
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       ref:
         description: 'Git tag to point stable tag to'
