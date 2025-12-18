@@ -1,0 +1,108 @@
+name: Production. Setup Stable Tag
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Git tag to point stable tag to'
+        required: true
+        type: string
+      tag_message:
+        description: 'Message for the stable tag'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+
+  GIT_BRANCH: main
+  TARGET_REF: "${{ inputs.ref }}"
+  TAG_NAME: stable
+  TAG_MESSAGE: "${{ inputs.tag_message }}"
+
+  SYMFONY_GIT_REPOSITORY_URL: git@github.com:Eugentk/Actions.git
+  SYMFONY_GIT_DEPLOY_KEY: ${{ secrets.GIT_ACCESS_KEY }}
+  REACT_GIT_REPOSITORY_URL: git@github.com:Eugentk/deploy_example.git
+  REACT_GIT_DEPLOY_KEY: ${{ secrets.GIT_ACCESS_KEY }}
+
+jobs:
+  move-stable-tag:
+    name: Move stable tag
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout SAS repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Move stable tag in SAS repo
+        run: |
+          git fetch --tags
+
+          git tag -d "${TAG_NAME}" || true
+          git push origin ":refs/tags/${TAG_NAME}" || true
+
+          git tag -a "${TAG_NAME}" "${TARGET_REF}" -m "${TAG_MESSAGE}"
+          git push origin "${TAG_NAME}"
+
+      # ---------- Symfony ----------
+      - name: Setup Symfony deploy key
+        run: |
+          echo "${{ env.SYMFONY_GIT_DEPLOY_KEY }}" > /tmp/symfony.pem
+          chmod 600 /tmp/symfony.pem
+
+      - name: Clone Symfony repo
+        run: |
+          GIT_SSH_COMMAND="ssh -i /tmp/symfony.pem -o StrictHostKeyChecking=no" git clone --fetch-depth=0 ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
+
+      - name: Move stable tag in Symfony repo
+        run: |
+          cd /tmp/symfony
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git fetch --tags
+
+          git tag -d "${TAG_NAME}" || true
+          GIT_SSH_COMMAND="ssh -i /tmp/symfony.pem -o StrictHostKeyChecking=no" git push origin ":refs/tags/${TAG_NAME}" || true
+
+          git tag -a "${TAG_NAME}" "${TARGET_REF}" -m "${TAG_MESSAGE}"
+          GIT_SSH_COMMAND="ssh -i /tmp/symfony.pem -o StrictHostKeyChecking=no" git push origin "${TAG_NAME}"
+
+      - name: Cleanup Symfony key
+        run: rm -f /tmp/symfony.pem
+
+      # ---------- React ----------
+      - name: Setup React deploy key
+        run: |
+          echo "${{ env.REACT_GIT_DEPLOY_KEY }}" > /tmp/react.pem
+          chmod 600 /tmp/react.pem
+
+      - name: Clone React repo
+        run: |
+          GIT_SSH_COMMAND="ssh -i /tmp/react.pem -o StrictHostKeyChecking=no" git clone --fetch-depth=0 ${{ env.REACT_GIT_REPOSITORY_URL }} /tmp/react
+
+      - name: Move stable tag in React repo
+        run: |
+          cd /tmp/react
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git fetch --tags
+
+          git tag -d "${TAG_NAME}" || true
+          GIT_SSH_COMMAND="ssh -i /tmp/react.pem -o StrictHostKeyChecking=no" git push origin ":refs/tags/${TAG_NAME}" || true
+
+          git tag -a "${TAG_NAME}" "${TARGET_REF}" -m "${TAG_MESSAGE}"
+          GIT_SSH_COMMAND="ssh -i /tmp/react.pem -o StrictHostKeyChecking=no" git push origin "${TAG_NAME}"
+
+      - name: Cleanup React key
+        run: rm -f /tmp/react.pem
