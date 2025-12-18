@@ -23,9 +23,9 @@ env:
   TAG_MESSAGE: "${{ inputs.tag_message }}"
 
   SYMFONY_GIT_REPOSITORY_URL: git@github.com:Eugentk/Actions.git
-  SYMFONY_GIT_DEPLOY_KEY: ${{ secrets.GIT_ACCESS_KEY }}
+  SYMFONY_GIT_DEPLOY_KEY: ${{ secrets.SYMFONY_GIT_DEPLOY_KEY }}
   REACT_GIT_REPOSITORY_URL: git@github.com:Eugentk/deploy_example.git
-  REACT_GIT_DEPLOY_KEY: ${{ secrets.GIT_ACCESS_KEY }}
+  REACT_GIT_DEPLOY_KEY: ${{ secrets.REACT_GIT_DEPLOY_KEY }}
 
 jobs:
   move-stable-tag:
