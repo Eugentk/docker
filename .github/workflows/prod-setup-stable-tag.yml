@@ -72,14 +72,13 @@ jobs:
       
       - name: Move stable tag in Symfony repo
         run: |
-          cd /tmp/symfony &&
+          cd /tmp/symfony
+          git config core.sshCommand "ssh -i /tmp/symfony.pem -o StrictHostKeyChecking=no"
           git fetch --tags
-
           git tag -d "${TAG_NAME}" || true
-          GIT_SSH_COMMAND="ssh -i /tmp/symfony.pem -o StrictHostKeyChecking=no" git push origin ":refs/tags/${TAG_NAME}" || true
-
-          # git tag -a "${TAG_NAME}" "${TARGET_REF}" -m "${TAG_MESSAGE}"
-          # GIT_SSH_COMMAND="ssh -i /tmp/symfony.pem -o StrictHostKeyChecking=no" git push origin "${TAG_NAME}"
+          git push origin ":refs/tags/${TAG_NAME}" || true
+          git tag -a "${TAG_NAME}" "${TARGET_REF}" -m "${TAG_MESSAGE}"
+          git push origin "${TAG_NAME}"
 
       - name: Cleanup Symfony key
         run: rm -f /tmp/symfony.pem
