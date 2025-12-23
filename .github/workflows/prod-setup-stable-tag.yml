@@ -63,20 +63,23 @@ jobs:
       - name: Clone Symfony repo
         run: |
           GIT_SSH_COMMAND="ssh -i /tmp/symfony.pem -o StrictHostKeyChecking=no" git clone --depth 1 --branch ${{ env.GIT_BRANCH }} ${{ env.SYMFONY_GIT_REPOSITORY_URL }} /tmp/symfony
-
-      - name: Move stable tag in Symfony repo
+      
+      - name: Configure SAS-Symfony Git user
         run: |
           cd /tmp/symfony
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
+      
+      - name: Move stable tag in Symfony repo
+        run: |
+          cd /tmp/symfony &&
           git fetch --tags
 
           git tag -d "${TAG_NAME}" || true
           GIT_SSH_COMMAND="ssh -i /tmp/symfony.pem -o StrictHostKeyChecking=no" git push origin ":refs/tags/${TAG_NAME}" || true
 
-          git tag -a "${TAG_NAME}" "${TARGET_REF}" -m "${TAG_MESSAGE}"
-          GIT_SSH_COMMAND="ssh -i /tmp/symfony.pem -o StrictHostKeyChecking=no" git push origin "${TAG_NAME}"
+          # git tag -a "${TAG_NAME}" "${TARGET_REF}" -m "${TAG_MESSAGE}"
+          # GIT_SSH_COMMAND="ssh -i /tmp/symfony.pem -o StrictHostKeyChecking=no" git push origin "${TAG_NAME}"
 
       - name: Cleanup Symfony key
         run: rm -f /tmp/symfony.pem
