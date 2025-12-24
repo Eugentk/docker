@@ -50,6 +50,12 @@ jobs:
         run: |
           git fetch --tags
 
+          if ! git rev-parse "refs/tags/${TARGET_REF}" >/dev/null 2>&1; then
+          echo "❌ ERROR: Tag '${TARGET_REF}' does not exist in SAS repository."
+          echo "❌ Cannot move '${TAG_NAME}' tag."
+          exit 1
+          fi
+          
           git tag -d "${TAG_NAME}" || true
           git push origin ":refs/tags/${TAG_NAME}" || true
 
@@ -77,6 +83,13 @@ jobs:
           cd /tmp/symfony
           git config core.sshCommand "ssh -i /tmp/symfony.pem -o StrictHostKeyChecking=no"
           git fetch --tags
+
+          if ! git rev-parse "refs/tags/${TARGET_REF}" >/dev/null 2>&1; then
+          echo "❌ ERROR: Tag '${TARGET_REF}' does not exist in SAS Symfony repository."
+          echo "❌ Cannot move '${TAG_NAME}' tag."
+          exit 1
+          fi
+
           git tag -d "${TAG_NAME}" || true
           git push origin ":refs/tags/${TAG_NAME}" || true
           git tag -a "${TAG_NAME}" "${TARGET_REF}" -m "${TAG_MESSAGE}"
@@ -106,6 +119,13 @@ jobs:
           cd /tmp/react
           git config core.sshCommand "ssh -i /tmp/react.pem -o StrictHostKeyChecking=no"
           git fetch --tags
+          
+          if ! git rev-parse "refs/tags/${TARGET_REF}" >/dev/null 2>&1; then
+          echo "❌ ERROR: Tag '${TARGET_REF}' does not exist in SAS Symfony repository."
+          echo "❌ Cannot move '${TAG_NAME}' tag."
+          exit 1
+          fi
+
           git tag -d "${TAG_NAME}" || true
           git push origin ":refs/tags/${TAG_NAME}" || true
           git tag -a "${TAG_NAME}" "${TARGET_REF}" -m "${TAG_MESSAGE}"
