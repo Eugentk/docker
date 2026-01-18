@@ -9,7 +9,7 @@ on:
         required: true
         type: string
       tag_message:
-        description: 'Message for the stable tag'
+        description: 'Message for the stable tag (optional)'
         required: false
         type: string
 
@@ -38,7 +38,6 @@ jobs:
       - name: Checkout SAS repository
         uses: actions/checkout@v5
         with:
-          token: ${{ env.GIT_ACCESS_TOKEN }}
           fetch-depth: 0
 
       - name: Configure Git user
@@ -53,7 +52,7 @@ jobs:
           else
             echo "TAG_MESSAGE=${{ inputs.tag_message }}" >> $GITHUB_ENV
           fi
-          
+
       - name: Move stable tag in SAS repo
         run: |
           git fetch --tags
