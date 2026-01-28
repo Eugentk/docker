@@ -27,6 +27,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Extract version from pom.xml
+        id: pom_version
+        run: |
+          RAW_VERSION=$(grep -m1 "<version>" pom.xml | sed -E 's/.*<version>([^<]+)<\/version>.*/\1/')
+          VERSION=${RAW_VERSION%-SNAPSHOT}
+          NEW_TAG="v$VERSION"
+          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+
       - name: Get short SHA with Git
         id: sha_git 
         run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
@@ -38,11 +46,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # Read version from pom.xml file
-          RAW_VERSION=$(grep -m1 "<version>" pom.xml | sed -E 's/.*<version>([^<]+)<\/version>.*/\1/')
-          VERSION=${RAW_VERSION%-SNAPSHOT}
-          NEW_TAG="v$VERSION"
-
-          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+          
+          NEW_TAG="${{ steps.pom_version.outputs.new_tag }}"
 
           # Prevent duplicate tag
           if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
@@ -54,9 +59,9 @@ jobs:
       - name: Release a new version
         if: steps.version.outputs.tag_exists == 'false'
         run: |
-            echo "Tag ${{ steps.version.outputs.new_tag }} will create — release"
-            echo "Update PHP proto files - ${{ steps.version.outputs.new_tag }}, entertainer commit: ${{ steps.sha_git.outputs.short_sha }}"
+            echo "Tag ${{ steps.pom_version.outputs.new_tag }} will create — release"
+            echo "Update PHP proto files - ${{ steps.pom_version.outputs.new_tag }}, entertainer commit: ${{ steps.sha_git.outputs.short_sha }}"
 
       - name: Tag already exists
-        if: steps.version.outputs.tag_exists == 'true'
+        if: steps.pom_version.outputs.tag_exists == 'true'
         run: echo "Tag ${{ steps.version.outputs.new_tag }} already exists — skipping release"
