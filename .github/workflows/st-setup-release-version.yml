@@ -63,5 +63,5 @@ jobs:
             echo "Update PHP proto files - ${{ steps.pom_version.outputs.new_tag }}, entertainer commit: ${{ steps.sha_git.outputs.short_sha }}"
 
       - name: Tag already exists
-        if: steps.pom_version.outputs.tag_exists == 'true'
-        run: echo "Tag ${{ steps.version.outputs.new_tag }} already exists — skipping release"
+        if: steps.version.outputs.tag_exists == 'true'
+        run: echo "Tag ${{ steps.pom_version.outputs.new_tag }} already exists — skipping release"
