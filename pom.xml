@@ -1,0 +1,6 @@
+  <groupId>com.my_tab</groupId>
+    <artifactId>entertainer</artifactId>
+    <version>0.14.15-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>Entertainer</name>
