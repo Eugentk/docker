@@ -6,8 +6,6 @@ fetch_secrets() {
 
     echo "Fetching secrets for: $SECRET_NAME"
 
-
-    # Get the secret value
     SECRET_VALUE=$(aws secretsmanager get-secret-value --secret-id $SECRET_NAME --query 'SecretString' --output text)
 
     if [ $? -ne 0 ]; then
