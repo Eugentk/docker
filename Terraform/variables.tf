@@ -5,7 +5,7 @@ variable "region" {
 # EC2 Variables
 variable "servers_count" {
   description = "Please Enter count"
-  default     = "3"
+  default     = "6"
 }
 variable "instance_type" {
   description = "Please Enter Instance Type"
