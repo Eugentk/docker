@@ -34,28 +34,11 @@ jobs:
         with:
           configurationJson: |
             {
-              "template": "#{{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n#{{UNCATEGORIZED}}\n</details>",
+              "template": "## 🚀 Changes in {{tag}}\n\n{{#each commits}}- {{message}} ({{author}})\n{{/each}}",
               "categories": [
-                {
-                    "title": "## 🚀 Features",
-                    "labels": ["feature" , "feat"]
-                },
-                {
-                    "title": "## 🐛 Fixes",
-                    "labels": ["bug", "fix"]
-                },
-                {
-                    "title": "## 📝 Documentation",
-                    "labels": ["docs"]
-                },
-                {
-                    "title": "## 📄 Tests",
-                    "labels": ["test"]
-                },
-                {
-                    "title": "## 🔧 Other",
-                    "labels": ["other"]
-                }
+                { "title": "✨ Features", "labels": ["feat", "enhancement"] },
+                { "title": "🐛 Fixes", "labels": ["fix", "bug"] },
+                { "title": "🧰 Maintenance", "labels": ["chore", "refactor", "docs"] }
               ]
             }
         env:
