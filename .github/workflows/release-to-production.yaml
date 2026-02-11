@@ -49,7 +49,7 @@ jobs:
         with:
           tag_name: ${{ steps.vars.outputs.tag }}
           name: ${{ steps.vars.outputs.version }}
-          body: ${{ steps.notes.outputs.notes }}
+          generate_release_notes: true
           draft: false
           prerelease: false
         env:
