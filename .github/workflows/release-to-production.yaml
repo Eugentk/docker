@@ -1,0 +1,60 @@
+name: Create Release on Tag
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  release:
+    name: Build and Publish GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: vars
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_NAME#v}
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          configuration: |
+            {
+              "template": "## 🚀 Changes in {{tag}}\n\n{{#each commits}}- {{message}} ({{author}})\n{{/each}}",
+              "categories": [
+                { "title": "✨ Features", "labels": ["feat", "enhancement"] },
+                { "title": "🐛 Fixes", "labels": ["fix", "bug"] },
+                { "title": "🧰 Maintenance", "labels": ["chore", "refactor", "docs"] }
+              ]
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: Release ${{ steps.vars.outputs.tag }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Print success message
+        run: |
+          echo "✅ Release ${{ steps.vars.outputs.tag }} created successfully"
