@@ -54,7 +54,7 @@ services:
       update_config:
         parallelism: 0
         order: stop-first
-        delay: 2s
+        delay: 3s
       restart_policy:
         condition: any
 

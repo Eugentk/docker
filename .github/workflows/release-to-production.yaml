@@ -30,8 +30,10 @@ jobs:
 
       - name: Generate changelog
         id: changelog
-        uses: mikepenz/release-changelog-builder-action@v4
+        uses: mikepenz/release-changelog-builder-action@v6
         with:
+          fromTag: "v0.14.15"
+          toTag: "v0.14.17"
           configuration: |
             {
               "template": "## 🚀 Changes in {{tag}}\n\n{{#each commits}}- {{message}} ({{author}})\n{{/each}}",
@@ -48,7 +50,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.vars.outputs.tag }}
-          name: Release ${{ steps.vars.outputs.tag }}
+          name: ${{ steps.vars.outputs.version }}
           body: ${{ steps.changelog.outputs.changelog }}
           draft: false
           prerelease: false
