@@ -61,5 +61,3 @@ else
     fi
 fi
 echo $VERSION
-
-new version
