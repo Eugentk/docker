@@ -61,7 +61,7 @@ services:
   site:
     image: nginxdemos/hello
     labels:
-      datadog_label: "white"
+      datadog_label: "red"
     networks:
       - backend
     ports:
