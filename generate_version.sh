@@ -4,7 +4,7 @@ usage()
 cat << EOF
 usage: $0 options
 
-This script changes version in config to dynamic version based on information from GIT repository
+changes version in config to dynamic version based on information from GIT repository
 
 OPTIONS:
    -h      Show this message
