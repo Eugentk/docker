@@ -1,0 +1,189 @@
+name: Build POS Application
+run-name: "Build Tag: ${{ github.ref_name }} | By @${{ github.actor }}"
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+env:
+  MAVEN_OPTS: "-Xmx2g -Xms2g"
+  AWS_REGION: us-east-2
+  S3_BUCKET: st-pos-github-actions
+  PROD_EXPIRE: 604800 #Generate Pre-Signed URL 7 days for prod
+  ALL_EXPIRE: 604800 #Generate Pre-Signed URL 7 days for others
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate Tag
+        id: tag_check
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME}"
+          echo "Detected tag: $TAG_NAME"
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+
+          if [[ ! "$TAG_NAME" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "Unsupported tag format"
+            exit 1
+          fi
+
+          if [[ "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+           echo "strict_release=true" >> $GITHUB_OUTPUT
+          else
+           echo "strict_release=false" >> $GITHUB_OUTPUT
+          fi
+
+          if [[ "$TAG_NAME" == *"-SNAPSHOT"* ]]; then
+            echo "env=develop" >> $GITHUB_OUTPUT
+
+          elif [[ "$TAG_NAME" == *"-rc"* ]]; then
+            echo "env=test" >> $GITHUB_OUTPUT
+
+          else
+            echo "env=prod" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract version from tag
+        id: vars
+        run: |
+          TAG_NAME="${{ steps.tag_check.outputs.tag }}"
+          VERSION="${TAG_NAME#v}"
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+
+      - name: Build POS
+        run: |
+          chmod +x docker/docker-build.sh
+          BUILD_ENV="${{ steps.tag_check.outputs.env }}"
+          echo "Build environment: $BUILD_ENV"
+
+          if [ "$BUILD_ENV" == "prod" ]; then
+            echo "Build production"
+          else
+            echo "Build develop"
+          fi
+
+
+      - name: Generate Pre-Signed URL
+        id: presign
+        run: |
+          if [ "${{ steps.tag_check.outputs.env }}" == "prod" ]; then
+            EXPIRE=${{ env.PROD_EXPIRE }}
+          else
+            EXPIRE=${{ env.ALL_EXPIRE }}
+          fi
+
+          URL=$(aws s3 presign)
+
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        if: success() && 
+            steps.tag_check.outputs.env == 'prod' &&
+            steps.tag_check.outputs.strict_release == 'true'
+        id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: ${{ steps.vars.outputs.version }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Notify Google Chat
+        if: success()
+        run: |
+          BUILD_ENV="${{ steps.tag_check.outputs.env }}"
+          S3_URL="${{ steps.presign.outputs.url }}"
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/${{ steps.vars.outputs.tag }}"
+
+          if [ "$BUILD_ENV" == "prod" ]; then
+            WEBHOOK="${{ secrets.GOOGLE_CHAT_WEBHOOK_PROD }}"
+          elif [ "$BUILD_ENV" == "test" ]; then
+            WEBHOOK="${{ secrets.GOOGLE_CHAT_WEBHOOK_TEST }}"
+          else
+            WEBHOOK="${{ secrets.GOOGLE_CHAT_WEBHOOK_DEV }}"
+          fi
+
+          if [ "$BUILD_ENV" == "prod" ] && steps.tag_check.outputs.strict_release == 'true'; then
+            curl -X POST "$WEBHOOK" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"cards\": [{
+                  \"header\": {
+                    \"title\": \"🚀 Release ${{ steps.vars.outputs.tag }}\",
+                    \"subtitle\": \"Environment: $BUILD_ENV\"
+                  },
+                  \"sections\": [{
+                    \"widgets\": [{
+                      \"buttons\": [
+                        {
+                          \"textButton\": {
+                            \"text\": \"Download from S3\",
+                            \"onClick\": { \"openLink\": { \"url\": \"$S3_URL\" } }
+                          }
+                        },
+                        {
+                          \"textButton\": {
+                            \"text\": \"GitHub Release\",
+                            \"onClick\": { \"openLink\": { \"url\": \"$RELEASE_URL\" } }
+                          }
+                        }
+                      ]
+                    }]
+                  }]
+                }]
+              }"
+          else
+            curl -X POST "$WEBHOOK" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"cards\": [{
+                  \"header\": {
+                    \"title\": \"🚀 Build ${{ steps.vars.outputs.tag }}\",
+                    \"subtitle\": \"Environment: $BUILD_ENV\"
+                  },
+                  \"sections\": [{
+                    \"widgets\": [{
+                      \"buttons\": [{
+                        \"textButton\": {
+                          \"text\": \"Download from S3\",
+                          \"onClick\": { \"openLink\": { \"url\": \"$S3_URL\" } }
+                        }
+                      }]
+                    }]
+                  }]
+                }]
+              }"
+          fi
+
+      - name: Post Failure Notification
+        if: failure()
+        run: |
+          BUILD_ENV="${{ steps.tag_check.outputs.env }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ "$BUILD_ENV" == "prod" ]; then
+             WEBHOOK="${{ secrets.GOOGLE_CHAT_WEBHOOK_PROD }}"
+          elif [ "$BUILD_ENV" == "test" ]; then
+             WEBHOOK="${{ secrets.GOOGLE_CHAT_WEBHOOK_TEST }}"
+          else
+             WEBHOOK="${{ secrets.GOOGLE_CHAT_WEBHOOK_DEV }}"
+          fi
+          curl -X POST "$WEBHOOK" \
+             -H "Content-Type: application/json" \
+             -d "{
+               \"text\": \"❌ Build failed for tag ${{ github.ref_name }}\n🌍 Environment: $BUILD_ENV\n🔎 View pipeline: ${RUN_URL}\"
+             }"
