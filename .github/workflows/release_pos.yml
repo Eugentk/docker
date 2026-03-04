@@ -117,7 +117,7 @@ jobs:
             WEBHOOK="${{ secrets.GOOGLE_CHAT_WEBHOOK_DEV }}"
           fi
 
-          if [ "$BUILD_ENV" == "prod" ] && steps.tag_check.outputs.strict_release == 'true'; then
+          if [ "$BUILD_ENV" == "prod" ] && [ "${{ steps.tag_check.outputs.strict_release }}" == "true" ]; then
             curl -X POST "$WEBHOOK" \
               -H "Content-Type: application/json" \
               -d "{
