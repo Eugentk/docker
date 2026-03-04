@@ -64,7 +64,6 @@ jobs:
 
       - name: Build POS
         run: |
-          chmod +x docker/docker-build.sh
           BUILD_ENV="${{ steps.tag_check.outputs.env }}"
           echo "Build environment: $BUILD_ENV"
 
