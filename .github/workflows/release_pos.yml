@@ -83,7 +83,7 @@ jobs:
             EXPIRE=${{ env.ALL_EXPIRE }}
           fi
 
-          URL=$(aws s3 presign)
+          URL="https://docs.github.com/"
 
           echo "url=$URL" >> $GITHUB_OUTPUT
 
