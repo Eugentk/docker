@@ -1,0 +1,29 @@
+name: Deploy SAM Backend Production
+run-name: Deploy to Production by ${{ github.actor }} 🚀
+on:
+  workflow_dispatch:
+
+
+jobs:
+  deploy_backend:
+    runs-on: ubuntu-latest
+    name: 'Build for Production environment'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: set up env
+        env:
+          BACKEND_ENV: ${{ secrets.PRODUCTION_ENV_FILE }}
+        shell: bash
+        run: |
+            echo "$BACKEND_ENV" >> .env
+
+      - name: copy docker-stack file
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.HOSTNAME_PRODUCTION }}
+          username: ${{ secrets.USER_NAME }}
+          key: ${{ secrets.PRIVATE_KEY_PRODUCTION }}
+          source: "./docker-stack.yml,./env"
+          target: /home/ubuntu
