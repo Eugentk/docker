@@ -18,6 +18,7 @@ jobs:
         shell: bash
         run: |
             echo "$BACKEND_ENV" >> .env
+            ls -la
 
       - name: copy docker-stack file
         uses: appleboy/scp-action@v1
@@ -25,5 +26,5 @@ jobs:
           host: ${{ secrets.HOSTNAME_PRODUCTION }}
           username: ${{ secrets.USER_NAME }}
           key: ${{ secrets.PRIVATE_KEY_PRODUCTION }}
-          source: "./docker-stack.yml,./env"
+          source: "./docker-stack.yml,./.env"
           target: /home/ubuntu
