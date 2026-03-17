@@ -72,6 +72,27 @@ jobs:
       - name: Remove react git deploy key
         run: rm /tmp/react-git-deploy-key.pem
 
+      - name: Compute Next.js cache key
+        id: nextjs-cache-key
+        run: |
+          if [ ! -f /tmp/react/package-lock.json ]; then
+            echo "package-lock.json not found in /tmp/react" >&2
+            exit 1
+          fi
+
+          LOCKFILE_HASH="$(sha256sum /tmp/react/package-lock.json | awk '{print $1}')"
+          echo "cache-prefix=${{ runner.os }}-nextjs-${{ inputs.deployment-env }}-${LOCKFILE_HASH}" >> "$GITHUB_OUTPUT"
+          echo "cache-key=${{ runner.os }}-nextjs-${{ inputs.deployment-env }}-${LOCKFILE_HASH}-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Restore Next.js build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/react/.next/cache
+          key: ${{ steps.nextjs-cache-key.outputs.cache-key }}
+          restore-keys: |
+            ${{ steps.nextjs-cache-key.outputs.cache-prefix }}-
+
       - name: generate react .env file
         run: |
             ./aws_secret_manager.sh  ${{ env.REACT_ENV_FILE_SECRET_NAME }} /tmp/react/.env
@@ -86,11 +107,26 @@ jobs:
             /tmp/react/.env
         shell: bash
 
+      - name: Ensure Next.js cache is included in Docker context
+        run: |
+          mkdir -p /tmp/react/.next/cache
+
+          if [ -f /tmp/react/.dockerignore ]; then
+            sed -i \
+              -e '/^\.next$/d' \
+              -e '/^\.next\/$/d' \
+              /tmp/react/.dockerignore
+
+            {
+              echo ''
+              echo '!.next'
+              echo '!.next/cache'
+            } >> /tmp/react/.dockerignore
+          fi
+        shell: bash
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build image
         uses: docker/build-push-action@v6
@@ -99,8 +135,26 @@ jobs:
           file: /tmp/react/Dockerfile
           platforms: linux/amd64
           load: true
+          outputs: type=docker
           tags: sas-react:latest
-          cache-from: |
-            type=registry,ref=${{ env.DOCKER_REPOSITORY_REACT_URI }}:cache
-            type=gha
-          cache-to: type=registry,ref=${{ env.DOCKER_REPOSITORY_REACT_URI }}:cache,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract Next.js build cache from image
+        run: |
+          CONTAINER_ID="$(docker create sas-react:latest)"
+          trap 'docker rm -f "$CONTAINER_ID" >/dev/null 2>&1 || true' EXIT
+
+          rm -rf /tmp/react/.next/cache
+          mkdir -p /tmp/react/.next
+
+          if ! docker cp "$CONTAINER_ID:/app/.next/cache" /tmp/react/.next/cache; then
+            mkdir -p /tmp/react/.next/cache
+          fi
+        shell: bash
+
+      - name: Save Next.js build cache
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/react/.next/cache
+          key: ${{ steps.nextjs-cache-key.outputs.cache-key }}
