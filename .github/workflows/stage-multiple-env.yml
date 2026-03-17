@@ -159,7 +159,7 @@ jobs:
       always() &&
       (needs.software-setup.result == 'success' || needs.software-setup.result == 'skipped')
     needs: [software-setup]
-    uses: Eugentk/docker/.github/workflows/stage-build-react.yml@dev # Change branch name
+    uses: Eugentk/docker/.github/workflows/stage-build-react2.yml@dev # Change branch name
     with:
         deployment-env: ${{ inputs.deployment-env }}
         react-git-ref: ${{ inputs.react-git-ref }}

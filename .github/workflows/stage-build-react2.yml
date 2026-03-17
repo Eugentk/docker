@@ -6,6 +6,10 @@ on:
         description: 'Deployment environment'
         required: true
         type: string
+      git-ref:
+        description: 'Git Reference (Optional. branch/commit hash)'
+        required: false
+        type: string
       react-git-ref:
         description: 'React Git Reference (Optional. branch/commit hash)'
         required: false
@@ -38,9 +42,20 @@ jobs:
             aws_secret_manager.sh
             generate_version.sh
           sparse-checkout-cone-mode: false
+        if: github.event.inputs.git-ref == ''
+
+      - name: Checkout sas repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.git-ref }}
+          sparse-checkout: |
+            aws_secret_manager.sh
+            generate_version.sh
+          sparse-checkout-cone-mode: false
+        if: github.event.inputs.git-ref != ''
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
@@ -72,19 +87,48 @@ jobs:
       - name: Remove react git deploy key
         run: rm /tmp/react-git-deploy-key.pem
 
-      - name: generate react .env file
-        run: |
-            ./aws_secret_manager.sh  ${{ env.REACT_ENV_FILE_SECRET_NAME }} /tmp/react/.env
+      - name: Generate react .env file
+        run: ./aws_secret_manager.sh  ${{ env.REACT_ENV_FILE_SECRET_NAME }} /tmp/react/.env
 
-      - name: Patch react .env file
+      - name: Set deployment env in react .env variable
+        run: sed -i~ 's/{environment}/${{ inputs.deployment-env }}/' /tmp/react/.env
+
+      - name: Set app version in react .env file
         run: |
-          NEXT_PUBLIC_VERSION=$(./generate_version.sh | sed 's/\//\\\//g')
-          sed -i~ \
-            -e 's/{environment}/${{ inputs.deployment-env }}/g' \
-            -e "/^NEXT_PUBLIC_VERSION=/s/=.*/=$NEXT_PUBLIC_VERSION/" \
-            -e '/^NEXT_PUBLIC_BLUE_GREEN_ENV=/s/=.*/=${{ inputs.deployment-env }}/' \
-            /tmp/react/.env
+          NEXT_PUBLIC_VERSION=`./generate_version.sh`
+          NEXT_PUBLIC_VERSION=$(echo "$NEXT_PUBLIC_VERSION" | sed 's/\//\\\//g')
+          sed -ri~ "/^NEXT_PUBLIC_VERSION=/s/=.*/=$NEXT_PUBLIC_VERSION/" /tmp/react/.env
         shell: bash
 
-      - name: Build image with the react source code
-        run: cd /tmp/react && docker build -t sas-react .
+      - name: Set deployment env in react .env
+        run: sed -i~ '/^NEXT_PUBLIC_BLUE_GREEN_ENV=/s/=.*/=${{ inputs.deployment-env }}/' /tmp/react/.env
+
+      - name: Authorize to AWS ECR
+        run: aws ecr get-login-password --region ${{ env.AWS_DEFAULT_REGION }} | docker login --username AWS --password-stdin  ${{ env.DOCKER_REPOSITORY_DOMAIN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build image
+        uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_SUMMARY: false   
+        with:
+          context: /tmp/react
+          file: /tmp/react/Dockerfile
+          platforms: linux/amd64
+          outputs: type=docker
+          tags: sas-react:latest
+          cache-from: type=registry,ref=${{ env.DOCKER_REPOSITORY_REACT_URI }}:build-cache
+          cache-to: type=registry,ref=${{ env.DOCKER_REPOSITORY_REACT_URI }}:build-cache,mode=max
+
+      - name: Set environment-based Docker tag
+        id: docker_tag
+        run: echo "tag=${{ inputs.deployment-env }}" >> "$GITHUB_OUTPUT"
+
+      - name: Push image with the react to Docker registry
+        run: |
+          docker tag sas-react:latest ${{ env.DOCKER_REPOSITORY_REACT_URI }}
+          docker tag ${{ env.DOCKER_REPOSITORY_REACT_URI }}:latest ${{ env.DOCKER_REPOSITORY_REACT_URI }}:${{ steps.docker_tag.outputs.tag }}
+          docker push ${{ env.DOCKER_REPOSITORY_REACT_URI }}:${{ steps.docker_tag.outputs.tag }}
+          
