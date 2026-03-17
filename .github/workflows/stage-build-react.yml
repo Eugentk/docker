@@ -92,9 +92,9 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         env:
-          DOCKER_BUILD_RECORD_UPLOAD: false   
+          DOCKER_BUILD_SUMMARY: false   
         with:
           context: /tmp/react
           file: /tmp/react/Dockerfile
