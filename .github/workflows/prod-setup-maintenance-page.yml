@@ -1,11 +1,11 @@
-name: ALB Maintenance Mode
+name: Production. ALB Maintenance Mode
 run-name: Setup Maintenance Page by ${{ github.actor }} 🔥
 
 on:
   workflow_dispatch:
     inputs:
       action:
-        description: "enable or disable maintenance mode"
+        description: "Enable or disable maintenance mode"
         required: true
         type: choice
         options:
@@ -18,7 +18,7 @@ env:
   SSM_PARAM: "/alb/previous-target-group"
 
 jobs:
-  maintenance:
+  maintenance_mode:
     runs-on: ubuntu-latest
     environment: stage
 
@@ -26,7 +26,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
