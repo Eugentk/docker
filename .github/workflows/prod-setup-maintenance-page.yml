@@ -23,7 +23,12 @@ on:
 env:
   AWS_REGION: eu-west-2
   LISTENER_ARN: ${{ secrets.LISTENER_ARN }}
+  AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
   SSM_PARAM: "/alb/previous-target-group"
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   maintenance_mode:
@@ -34,9 +39,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          
 
       - name: Detect current Target Group
         if: ${{ github.event.inputs.action == 'enable' }}
