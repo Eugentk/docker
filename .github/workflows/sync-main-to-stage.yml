@@ -168,10 +168,10 @@ jobs:
             *Promotion:* `${{ env.SOURCE_BRANCH }}` → `${{ env.TARGET_BRANCH }}`
             *Triggered by:* @${{ github.actor }}
             *Workflow run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_id }}>
-          SLACK_TITLE: 'Release Promotion: ${{ env.TAG_NAME }} by ${{ github.actor }} 🚀'
+          SLACK_TITLE: 'Release Promotion: ${{ env.TAG_NAME }} by ${{ github.actor }}'
           SLACK_USERNAME: SAS repository post-release actions
 
-      - name: Write job summary
+      - name: Write job summary info
         if: always()
         run: |
           {
