@@ -18,6 +18,7 @@ env:
   TARGET_BRANCH: stage
   SECURITY_TOKEN: ${{ secrets.SECURITY_TOKEN }}
   SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  SLACK_CHANNEL: 'post-releases'
 
 
 jobs:
@@ -150,62 +151,25 @@ jobs:
             --delete-branch=false
           echo "✅ PR merged successfully into '${{ env.TARGET_BRANCH }}'."
 
-      - name: Notify Slack — PR status
-        if: steps.conflict_check.outputs.in_sync != 'true'
-        env:
-          SLACK_WEBHOOK_URL: ${{ env.SLACK_WEBHOOK_URL }}
-          PR_URL: ${{ steps.create_pr.outputs.pr_url }}
-          HAS_CONFLICT: ${{ steps.conflict_check.outputs.has_conflict }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          if [ "$HAS_CONFLICT" == "true" ]; then
-            STATUS_EMOJI="⚠️"
-            STATUS_TEXT="Merge conflict detected — manual resolution required"
-            COLOR="warning"
-          else
-            STATUS_EMOJI="✅"
-            STATUS_TEXT="Main branch auto-merged successfully into \`${{ env.TARGET_BRANCH }}\`"
-            COLOR="good"
-          fi
 
-          curl -s -X POST "$SLACK_WEBHOOK_URL" \
-            -H "Content-Type: application/json" \
-            --data "$(cat <<JSON
-          {
-            "attachments": [
-              {
-                "color": "$COLOR",
-                "title": "$STATUS_EMOJI Release Promotion: ${{ env.TAG_NAME }}",
-                "title_link": "$PR_URL",
-                "text": "$STATUS_TEXT",
-                "fields": [
-                  {
-                    "title": "Pull Request",
-                    "value": "<$PR_URL|View PR>",
-                    "short": true
-                  },
-                  {
-                    "title": "Promotion",
-                    "value": "\`${{ env.SOURCE_BRANCH }}\` → \`${{ env.TARGET_BRANCH }}\`",
-                    "short": true
-                  },
-                  {
-                    "title": "Triggered by",
-                    "value": "@${{ github.actor }}",
-                    "short": true
-                  },
-                  {
-                    "title": "Workflow run",
-                    "value": "<$RUN_URL|#${{ github.run_id }}>",
-                    "short": true
-                  }
-                ],
-                "footer": "GitHub Actions · ${{ github.repository }}"
-              }
-            ]
-          }
-          JSON
-          )"
+      - name: Slack Notification
+        if: steps.conflict_check.outputs.in_sync != 'true'
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ env.SLACK_WEBHOOK_URL }}
+          SLACK_CHANNEL: ${{ env.SLACK_CHANNEL }}
+          SLACK_COLOR: ${{ steps.conflict_check.outputs.has_conflict == 'true' && 'warning' || 'good' }}
+          SLACK_FOOTER: 'Powered By SellerAmp'
+          MSG_MINIMAL: true
+          SLACK_ICON_EMOJI: ':arrows_counterclockwise:'
+          SLACK_MESSAGE: |
+            ${{ steps.conflict_check.outputs.has_conflict == 'true' && '⚠️ Merge conflict detected — manual resolution required' || '✅ Auto-merged successfully into `stage`' }}
+            *PR:* <${{ steps.create_pr.outputs.pr_url }}|View Pull Request>
+            *Promotion:* `${{ env.SOURCE_BRANCH }}` → `${{ env.TARGET_BRANCH }}`
+            *Triggered by:* @${{ github.actor }}
+            *Workflow run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_id }}>
+          SLACK_TITLE: 'Release Promotion: ${{ env.TAG_NAME }} by ${{ github.actor }} 🚀'
+          SLACK_USERNAME: SAS repository post-release actions
 
       - name: Write job summary
         if: always()
