@@ -1,0 +1,276 @@
+name: Sync main → stage
+run-name: "Promote ${{ github.ref_name }} to stage by ${{ github.actor }} 🚀"
+
+on:
+  push:
+    tags:
+      - 'stable' 
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+
+env:
+  TAG_NAME: ${{ github.ref_name }}
+  SOURCE_BRANCH: main
+  TARGET_BRANCH: stage
+
+jobs:
+  sync-main-to-stage:
+    name: Promote ${{ github.ref_name }} → stage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.SECURITY_TOKEN }}
+
+      - name: Validate stable tag
+        run: |
+          if [[ "${{ env.TAG_NAME }}" != "stable" ]]; then
+            echo "::error::Tag '${{ env.TAG_NAME }}' is not the 'stable' tag. Skipping promotion."
+            exit 1
+          fi
+          echo "✅ Tag '${{ env.TAG_NAME }}' is confirmed as the stable tag."
+
+      - name: Configure Git identity
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Detect merge conflicts (dry-run)
+        id: conflict_check
+        run: |
+          # Make sure both branches are up to date locally.
+          git fetch --no-tags origin "${{ env.SOURCE_BRANCH }}" "${{ env.TARGET_BRANCH }}"
+
+          # Check out TARGET_BRANCH, creating a local tracking branch if needed.
+          git checkout -b "${{ env.TARGET_BRANCH }}" "origin/${{ env.TARGET_BRANCH }}" 2>/dev/null \
+            || git checkout "${{ env.TARGET_BRANCH }}"
+
+          # Check if there is anything to promote at all.
+          AHEAD=$(git log "origin/${{ env.TARGET_BRANCH }}..origin/${{ env.SOURCE_BRANCH }}" \
+            --oneline | wc -l | tr -d ' ')
+
+          if [ "$AHEAD" -eq 0 ]; then
+            echo "ℹ️  '${{ env.SOURCE_BRANCH }}' and '${{ env.TARGET_BRANCH }}' are already in sync."
+            echo "has_conflict=false"   >> "$GITHUB_OUTPUT"
+            echo "in_sync=true"         >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "in_sync=false" >> "$GITHUB_OUTPUT"
+          echo "$AHEAD commit(s) ahead of '${{ env.TARGET_BRANCH }}'. Running conflict check…"
+
+          # Attempt a no-commit merge; capture exit code without aborting the step.
+          set +e
+          git merge --no-commit --no-ff "origin/${{ env.SOURCE_BRANCH }}" 2>&1
+          MERGE_EXIT=$?
+          set -e
+
+          # Clean up the merge state regardless of outcome.
+          git merge --abort 2>/dev/null || git reset --hard HEAD
+
+          if [ "$MERGE_EXIT" -eq 0 ]; then
+            echo "has_conflict=false" >> "$GITHUB_OUTPUT"
+            echo "✅ No merge conflicts detected."
+          else
+            echo "has_conflict=true" >> "$GITHUB_OUTPUT"
+            echo "⚠️  Merge conflicts detected — PR will be left open for manual resolution."
+          fi
+
+      - name: Create Pull Request
+        id: create_pr
+        if: steps.conflict_check.outputs.in_sync != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SECURITY_TOKEN }}
+        run: |
+          cat > /tmp/pr-body.md << 'PR_BODY'
+          ## 🚀 Automated Release Promotion
+
+          | Field        | Value |
+          |--------------|-------|
+          | Tag          | `${{ env.TAG_NAME }}` |
+          | Source       | `${{ env.SOURCE_BRANCH }}` |
+          | Target       | `${{ env.TARGET_BRANCH }}` |
+          | Triggered by | @${{ github.actor }} |
+          | Workflow run | [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) |
+
+          > This PR was created automatically by the **Sync main → stage** workflow.
+          >
+          > ⚠️ If auto-merge is blocked (e.g. by branch protection or conflicts), resolve
+          > the issues and merge this PR manually.
+          PR_BODY
+
+          # Attempt PR creation; capture output to detect "already exists" errors.
+          PR_URL=$(gh pr create \
+            --base "${{ env.TARGET_BRANCH }}" \
+            --head "${{ env.SOURCE_BRANCH }}" \
+            --title "Automated Release Promotion: ${{ env.TAG_NAME }}" \
+            --body-file /tmp/pr-body.md 2>&1) || true
+
+          # If the output looks like a URL the PR was just created — great.
+          # Otherwise search for an existing open PR (handles re-runs gracefully).
+          if echo "$PR_URL" | grep -qE '^https://'; then
+            echo "✅ Created new PR: $PR_URL"
+          else
+            echo "PR may already exist or creation failed.  Searching for open PR…"
+            PR_URL=$(gh pr list \
+              --base "${{ env.TARGET_BRANCH }}" \
+              --head "${{ env.SOURCE_BRANCH }}" \
+              --state open \
+              --json url \
+              --jq '.[0].url')
+          fi
+
+          if [ -z "$PR_URL" ]; then
+            echo "::error::Could not create or locate a pull request. Aborting."
+            exit 1
+          fi
+
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+          echo "PR: $PR_URL"
+
+      - name: Auto-merge PR into stage
+        if: |
+          steps.conflict_check.outputs.has_conflict == 'false' &&
+          steps.conflict_check.outputs.in_sync != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SECURITY_TOKEN }}
+        run: |
+          gh pr merge "${{ steps.create_pr.outputs.pr_url }}" \
+            --merge \
+            --delete-branch=false
+          echo "✅ PR merged successfully into '${{ env.TARGET_BRANCH }}'."
+
+      # ── Step 7a ── Notify team — promotion successful ─────────────────────
+      # Creates a GitHub Issue that persists as an audit trail.
+      # Delete or comment out this step and replace with a Slack/Teams webhook
+      # call if you prefer a chat notification instead.
+      - name: Notify team — promotion successful
+        if: |
+          steps.conflict_check.outputs.has_conflict == 'false' &&
+          steps.conflict_check.outputs.in_sync != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SECURITY_TOKEN }}
+        run: |
+          cat > /tmp/success-issue.md << 'SUCCESS_BODY'
+          ## ✅ Release Promotion Completed
+
+          Tag **`${{ env.TAG_NAME }}`** has been successfully promoted from
+          `${{ env.SOURCE_BRANCH }}` → `${{ env.TARGET_BRANCH }}`.
+
+          | Detail       | Value |
+          |--------------|-------|
+          | Merged PR    | ${{ steps.create_pr.outputs.pr_url }} |
+          | Tag          | `${{ env.TAG_NAME }}` |
+          | Triggered by | @${{ github.actor }} |
+          | Workflow run | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |
+
+          No further action is required.
+          The stage deployment pipeline will pick up the merged changes automatically.
+
+          _Close this issue once the stage environment has been verified._
+          SUCCESS_BODY
+
+          gh issue create \
+            --title "✅ Stage promotion successful: ${{ env.TAG_NAME }}" \
+            --body-file /tmp/success-issue.md
+
+      # ── Step 7b ── Notify team — conflict detected ────────────────────────
+      # Opens a GitHub Issue that:
+      #   • links directly to the blocked PR
+      #   • @-mentions the team/person defined in the CONFLICT_NOTIFY_TEAM
+      #     repository variable (Settings → Variables → Actions).
+      #     Example value: "@your-org/your-team"  or  "@your-username"
+      #     Leave the variable empty to skip the mention.
+      - name: Notify team — merge conflict (manual resolution required)
+        if: steps.conflict_check.outputs.has_conflict == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SECURITY_TOKEN }}
+          CONFLICT_NOTIFY_TEAM: ${{ vars.CONFLICT_NOTIFY_TEAM }}
+        run: |
+          MENTION_LINE=""
+          if [ -n "$CONFLICT_NOTIFY_TEAM" ]; then
+            MENTION_LINE="cc ${CONFLICT_NOTIFY_TEAM}"
+          fi
+
+          # Note: unquoted EOF so ${MENTION_LINE} is expanded by bash.
+          # All ${{ }} expressions have been substituted by GHA before
+          # this shell script runs, so they appear as literal values here.
+          cat > /tmp/conflict-issue.md << EOF
+          ## ⚠️ Action Required — Merge Conflict
+
+          The automated promotion of \`${{ env.TAG_NAME }}\` from \`${{ env.SOURCE_BRANCH }}\`
+          to \`${{ env.TARGET_BRANCH }}\` was **blocked** due to merge conflicts.
+
+          A Pull Request has been created but **has NOT been merged**.
+
+          ### Next Steps
+
+          1. Open the Pull Request below and resolve the conflicts locally.
+          2. Push the resolved changes and ensure all required status checks pass.
+          3. Merge the PR manually.
+          4. Close this issue once verified.
+
+          ### Links
+
+          | Item         | URL |
+          |--------------|-----|
+          | Pull Request | ${{ steps.create_pr.outputs.pr_url }} |
+          | Workflow run | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |
+          | Tag          | \`${{ env.TAG_NAME }}\` |
+
+          ${MENTION_LINE}
+          EOF
+
+          gh issue create \
+            --title "⚠️ Merge conflict — stage promotion blocked: ${{ env.TAG_NAME }}" \
+            --body-file /tmp/conflict-issue.md
+
+      # ── Step 8 ── Write workflow job summary (always) ─────────────────────
+      - name: Write job summary
+        if: always()
+        run: |
+          {
+            if [ "${{ steps.conflict_check.outputs.in_sync }}" == "true" ]; then
+              echo "## ℹ️ Nothing to Promote"
+              echo ""
+              echo "| Field  | Value |"
+              echo "|--------|-------|"
+              echo "| Tag    | \`${{ env.TAG_NAME }}\` |"
+              echo "| Status | Branches already in sync — no PR created |"
+
+            elif [ "${{ steps.conflict_check.outputs.has_conflict }}" == "true" ]; then
+              echo "## ⚠️ Promotion Blocked — Merge Conflict"
+              echo ""
+              echo "| Field  | Value |"
+              echo "|--------|-------|"
+              echo "| Tag    | \`${{ env.TAG_NAME }}\` |"
+              echo "| PR     | ${{ steps.create_pr.outputs.pr_url }} |"
+              echo "| Status | ❌ Conflict detected — manual resolution required |"
+
+            else
+              echo "## ✅ Stage Promotion Successful"
+              echo ""
+              echo "| Field  | Value |"
+              echo "|--------|-------|"
+              echo "| Tag    | \`${{ env.TAG_NAME }}\` |"
+              echo "| PR     | ${{ steps.create_pr.outputs.pr_url }} |"
+              echo "| Status | ✅ Auto-merged into \`${{ env.TARGET_BRANCH }}\` |"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ── Step 9 ── Fail the workflow run explicitly on conflict ─────────────
+      # Marks the run red in the GitHub UI so the conflict is immediately
+      # visible in the commit/tag status checks.
+      - name: Fail workflow on conflict
+        if: steps.conflict_check.outputs.has_conflict == 'true'
+        run: |
+          echo "::error::Merge conflicts detected between '${{ env.SOURCE_BRANCH }}' and '${{ env.TARGET_BRANCH }}'."
+          echo "::error::The PR has been left open. See the GitHub Issue created above for resolution steps."
+          exit 1
