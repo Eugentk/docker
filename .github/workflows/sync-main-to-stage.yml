@@ -200,7 +200,7 @@ jobs:
           fi
 
           # Note: unquoted EOF so ${MENTION_LINE} is expanded by bash.
-          # All ${{ }} expressions have been substituted by GHA before
+          # All expressions have been substituted by GHA before
           # this shell script runs, so they appear as literal values here.
           cat > /tmp/conflict-issue.md << EOF
           ## ⚠️ Action Required — Merge Conflict
